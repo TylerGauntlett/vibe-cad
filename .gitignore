@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+*.pyc
+# slicer byproducts if the CLI is ever run by hand in a model folder
+plate_*.gcode
+result.json

@@ -1,0 +1,8 @@
+* text=auto
+# CAD / print files: store byte-for-byte, never convert line endings or diff
+*.stl  binary
+*.step binary
+*.stp  binary
+*.3mf  binary
+*.glb  binary
+*.png  binary
