@@ -1,0 +1,1 @@
+vt_0_black.stl vt_0_red.stl vt_0_tan.stl vt_0_cream.stl vt_1_black.stl vt_1_red.stl vt_1_cream.stl vt_2_cream.stl --assemble --extruders 1,2,3,4,1,2,4,4 --colors "#241B16,#8E1D19,#B08551,#F0CB9A" --set wall_generator=arachne

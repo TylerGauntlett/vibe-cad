@@ -1,3 +1,9 @@
 build123d==0.13.0
 matplotlib==3.11.2
 numpy==2.4.6
+# image-to-mesh models (e.g. models/vampire-token)
+pillow==13.0.0
+scipy==1.17.1
+shapely==2.2.0
+trimesh==5.2.0
+opencv-python-headless==5.0.0.93

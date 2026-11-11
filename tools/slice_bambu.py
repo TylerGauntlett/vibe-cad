@@ -10,10 +10,17 @@ Usage:
         [--process "0.20mm Standard @BBL A1"]
         [--filament "Bambu PLA Basic @BBL A1"]
         [--bed "Textured PEI Plate"]
+        [--set key=value ...]            override process settings (e.g. wall_generator=arachne)
+
+Multi-colour (AMS): with --assemble, all STLs become PARTS of ONE object, each on its own slot:
+    python tools\\slice_bambu.py black.stl red.stl tan.stl cream.stl -o out\\x_A1.3mf
+        --assemble --extruders 1,2,3,4 --colors "#241B16,#8E1D19,#B08551,#F0CB9A" [--flush auto]
+  The STLs must already be positioned relative to each other (same coordinate frame).
+  The summary reports grams per slot and the number of filament changes.
 
 Stdlib only - runs with any Python 3.8+.
 
-Why this script exists (lessons from the first project):
+Why this script exists (lessons learned):
   * bambu-studio.exe is a GUI-subsystem binary: --help prints nothing, so we
     judge success from the exit code and result.json.
   * System presets use an 'inherits' chain; the CLI wants standalone files, so
@@ -22,8 +29,14 @@ Why this script exists (lessons from the first project):
     which is wrong for the A1's stock Textured PEI plate (65 C).
   * The CLI also drops plate_N.gcode and result.json into --outputdir; we slice
     in a temp dir and keep only the .3mf (which already contains the gcode).
+  * Multi-colour: a hand-written input 3MF crashes the CLI (access violation), so
+    we let the CLI build the assembly itself (--assemble, export only), patch
+    the per-part "extruder" keys in its model_settings.config, then slice that.
+  * The CLI's default flush matrix is a flat 280 mm^3 for every colour pair. The
+    GUI recomputes it from the colours; --flush auto does a similar estimate here.
 """
 import argparse
+import colorsys
 import json
 import os
 import re
@@ -66,13 +79,35 @@ def flatten_preset(kind, name, dest):
     return dest
 
 
+def flush_volume(src_hex, dst_hex, lo=110, hi=800):
+    """Estimated purge (mm^3) to go from one filament colour to another, in the spirit of Bambu
+    Studio's colour-based auto-calc: going dark->light costs much more than light->dark, and a
+    hue change adds to it. Use the GUI's "Flushing volumes" auto-calc for the authoritative values."""
+    def parse(h):
+        h = h.lstrip("#")
+        return [int(h[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+    a, b = parse(src_hex), parse(dst_hex)
+    la = 0.299 * a[0] + 0.587 * a[1] + 0.114 * a[2]
+    lb = 0.299 * b[0] + 0.587 * b[1] + 0.114 * b[2]
+    ha, sa, _ = colorsys.rgb_to_hsv(*a)
+    hb, sb, _ = colorsys.rgb_to_hsv(*b)
+    lumi = (lb - la) ** 0.7 * 560 if lb >= la else (la - lb) * 80
+    dh = min(abs(ha - hb), 1 - abs(ha - hb)) * 2  # 0..1
+    hs = 230 * min(1.0, ((sa - sb) ** 2 + (dh * min(sa, sb)) ** 2) ** 0.5)
+    return int(min(hi, lo + (lumi ** 2 + hs ** 2) ** 0.5))
+
+
 def summarize(path_3mf):
     z = zipfile.ZipFile(path_3mf)
     cfg = json.loads(z.read("Metadata/project_settings.config"))
     print(f"printer : {cfg.get('printer_settings_id')}")
     print(f"process : {cfg.get('print_settings_id')}  (layer {cfg.get('layer_height')} mm, "
-          f"infill {cfg.get('sparse_infill_density')}, walls {cfg.get('wall_loops')})")
+          f"infill {cfg.get('sparse_infill_density')}, walls {cfg.get('wall_loops')}, "
+          f"{cfg.get('wall_generator')} walls)")
     print(f"filament: {cfg.get('filament_settings_id')}")
+    if len(cfg.get("filament_colour", [])) > 1:
+        print(f"colours : {cfg.get('filament_colour')}")
+        print(f"flush   : {cfg.get('flush_volumes_matrix')} mm^3 (row = from, col = to)")
     print(f"bed     : {cfg.get('curr_bed_type')}")
     info = z.read("Metadata/slice_info.config").decode()
     total_s, total_g, ok = 0, 0.0, True
@@ -85,10 +120,38 @@ def summarize(path_3mf):
         ok &= not outside
         warns = re.findall(r'<warning msg="([^"]+)"', plate)
         print(f"plate {g('index')}: {', '.join(objs)}  {secs // 3600}h{secs % 3600 // 60:02d}m  "
-              f"{grams:.0f} g{'  OUTSIDE BED!' if outside else ''}"
+              f"{grams:.1f} g{'  OUTSIDE BED!' if outside else ''}"
               + (f"  warnings: {warns}" if warns else ""))
-    print(f"total   : {total_s // 3600}h{total_s % 3600 // 60:02d}m  {total_g:.0f} g")
+        gname = f"Metadata/plate_{g('index')}.gcode"
+        n_fil = len(cfg.get("filament_colour", []))
+        if n_fil > 1 and gname in z.namelist():
+            gc = z.read(gname).decode(errors="ignore")
+            # Per-slot weights: the gcode header lists one per slot, except that the CLI sometimes
+            # drops a slot and shifts the rest (seen on a face-up relief), so only trust a full list.
+            # slice_info.config's <filament> entries are mislabelled in that case too.
+            w = re.search(r"^; total filament weight \[g\] : (.*)$", gc, re.M)
+            w = w.group(1).split(",") if w else []
+            if len(w) == n_fil:
+                print("   per slot: " + ", ".join(f"{i + 1}={float(x):.2f} g" for i, x in enumerate(w)))
+            else:
+                print("   per slot: (CLI header incomplete; see the model script's per-slot grams)")
+            # one "M620 S<n>A" per filament switch; the initial load is done by the firmware
+            changes = len(re.findall(r"^M620 S\d+A", gc, re.M))
+            # purge = extrusion inside the FLUSH_START..FLUSH_END blocks (relative E, mm of 1.75 filament)
+            body = gc.split("; EXECUTABLE_BLOCK_START", 1)[-1]
+            purge_mm = sum(float(e) for blk in re.findall(r"; FLUSH_START(.*?); FLUSH_END", body, re.S)
+                           for e in re.findall(r"^G1 [^;\n]*E([\d.]+)", blk, re.M))
+            purge_g = purge_mm * 3.14159 * 0.875 ** 2 / 1000 * 1.24
+            print(f"   filament swaps: {changes}, purge waste ~{purge_g:.1f} g (included in the total)")
+    print(f"total   : {total_s // 3600}h{total_s % 3600 // 60:02d}m  {total_g:.1f} g")
     return ok
+
+
+def run_cli(args, tmp):
+    rc = subprocess.run([str(BAMBU_EXE), *args], cwd=tmp).returncode
+    result = tmp / "result.json"
+    msg = json.loads(result.read_text()).get("error_string") if result.exists() else "(no result.json)"
+    return rc, msg
 
 
 def main():
@@ -100,6 +163,13 @@ def main():
     ap.add_argument("--filament", default="Bambu PLA Basic @BBL A1")
     ap.add_argument("--bed", default="Textured PEI Plate",
                     help='"Textured PEI Plate", "Cool Plate", "Engineering Plate", "High Temp Plate"')
+    ap.add_argument("--set", action="append", default=[], metavar="KEY=VALUE",
+                    help="override a process setting, e.g. wall_generator=arachne (repeatable)")
+    ap.add_argument("--assemble", action="store_true",
+                    help="load all STLs as parts of ONE object (multi-colour)")
+    ap.add_argument("--extruders", help="comma list: filament slot per STL (default 1,2,3...)")
+    ap.add_argument("--colors", help='comma list of filament colours, one per slot, e.g. "#000000,#FF0000"')
+    ap.add_argument("--flush", default="auto", help='"auto" (estimate from --colors) or "default" (CLI 280s)')
     a = ap.parse_args()
 
     if not BAMBU_EXE.exists():
@@ -107,20 +177,69 @@ def main():
     stls = [str(Path(s).resolve()) for s in a.stl]
     out = Path(a.output).resolve()
     out.parent.mkdir(parents=True, exist_ok=True)
+    colors = [c.strip() for c in a.colors.split(",")] if a.colors else []
+    extruders = [int(e) for e in a.extruders.split(",")] if a.extruders else list(range(1, len(stls) + 1))
+    if a.assemble and len(extruders) != len(stls):
+        sys.exit("--extruders needs one slot per STL")
+    n_fil = max(max(extruders) if a.assemble else 1, len(colors), 1)
 
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
         m = flatten_preset("machine", a.machine, tmp / "machine.json")
         p = flatten_preset("process", a.process, tmp / "process.json")
-        f = flatten_preset("filament", a.filament, tmp / "filament.json")
-        cmd = [str(BAMBU_EXE), "--arrange", "1", "--orient", "0",
-               "--curr-bed-type", a.bed,
-               "--load-settings", f"{m};{p}", "--load-filaments", str(f),
-               "--slice", "0", "--outputdir", str(tmp),
-               "--export-3mf", out.name, *stls]
-        rc = subprocess.run(cmd, cwd=tmp).returncode
-        result = tmp / "result.json"
-        msg = json.loads(result.read_text()).get("error_string") if result.exists() else "(no result.json)"
+        pj = json.loads(p.read_text(encoding="utf-8"))
+        for kv in a.set:
+            k, v = kv.split("=", 1)
+            pj[k] = v
+        if n_fil > 1 and len(colors) >= n_fil and a.flush == "auto":
+            pj["flush_volumes_matrix"] = [str(0 if i == j else flush_volume(colors[i], colors[j]))
+                                          for i in range(n_fil) for j in range(n_fil)]
+        p.write_text(json.dumps(pj, indent=2), encoding="utf-8")
+        fils = []
+        for i in range(n_fil):  # one copy of the filament preset per AMS slot, recoloured
+            fp = flatten_preset("filament", a.filament, tmp / f"filament_{i + 1}.json")
+            if i < len(colors):
+                fj = json.loads(fp.read_text(encoding="utf-8"))
+                fj["filament_colour"] = [colors[i]]
+                fp.write_text(json.dumps(fj, indent=2), encoding="utf-8")
+            fils.append(str(fp))
+        common = ["--curr-bed-type", a.bed, "--load-settings", f"{m};{p}",
+                  "--load-filaments", ";".join(fils), "--outputdir", str(tmp)]
+
+        models = stls
+        if a.assemble:
+            # pass 1: let Bambu build the one-object/many-parts assembly (export only, no slicing)
+            rc, msg = run_cli(["--assemble", "--arrange", "1", "--orient", "0", *common,
+                               "--export-3mf", "assembly.3mf", *stls], tmp)
+            asm = tmp / "assembly.3mf"
+            if rc != 0 or not asm.exists():
+                sys.exit(f"Assembling failed: exit {rc}, {msg}")
+            # patch each part's filament slot (parts keep the STL file name)
+            slot = {Path(s).name: e for s, e in zip(stls, extruders)}
+            zin = zipfile.ZipFile(asm)
+            items = {n: zin.read(n) for n in zin.namelist()}
+            zin.close()
+            cfg = items["Metadata/model_settings.config"].decode()
+
+            def patch(mo):
+                block = mo.group(0)
+                name = re.search(r'key="name" value="([^"]+)"', block).group(1)
+                return re.sub(r'(key="extruder" value=")\d+(")', rf"\g<1>{slot[name]}\g<2>", block)
+            cfg, n = re.subn(r"<part .*?</part>", patch, cfg, flags=re.S)
+            if n != len(stls):
+                sys.exit(f"expected {len(stls)} parts in the assembly, found {n}")
+            # the object's own filament (default 1) overrides its FIRST part, so match them
+            cfg = re.sub(r'(<object id="\d+">\s*<metadata key="name" value="[^"]*"/>)',
+                         rf'\g<1>\n    <metadata key="extruder" value="{extruders[0]}"/>', cfg, count=1)
+            items["Metadata/model_settings.config"] = cfg.encode()
+            with zipfile.ZipFile(asm, "w", zipfile.ZIP_DEFLATED) as zout:
+                for k, v in items.items():
+                    zout.writestr(k, v)
+            (tmp / "result.json").unlink(missing_ok=True)
+            models = [str(asm)]
+
+        rc, msg = run_cli(["--arrange", "1", "--orient", "0", *common, "--slice", "0",
+                           "--export-3mf", out.name, *models], tmp)
         produced = tmp / out.name
         if rc != 0 or not produced.exists():
             sys.exit(f"Slicing failed: exit {rc}, {msg}")
