@@ -150,8 +150,14 @@ def summarize(path_3mf):
 def run_cli(args, tmp):
     rc = subprocess.run([str(BAMBU_EXE), *args], cwd=tmp).returncode
     result = tmp / "result.json"
-    msg = json.loads(result.read_text()).get("error_string") if result.exists() else "(no result.json)"
-    return rc, msg
+    if not result.exists():
+        return rc, "(no result.json)"
+    res = json.loads(result.read_text())
+    # slicer warnings (e.g. "floating regions") are only reported here, not in the 3MF
+    for pl in res.get("sliced_plates", []):
+        if pl.get("warning_message"):
+            print(f"WARNING (plate {pl.get('id')}): {pl['warning_message']}")
+    return rc, res.get("error_string")
 
 
 def main():

@@ -100,6 +100,11 @@ LAYOUTS = {
 }
 # flat-black is kept for comparison only: flat-light beats it on swaps, purge, time and looks.
 DEFAULT_LAYOUTS = ["flat-light", "relief"]
+# Per-layout stroke limit. In the relief every stroke is a column several layers tall, and Bambu
+# skips sub-0.2 mm strokes in some layers but not others, then flags the next layer up as
+# "floating regions". 0.20 mm clears that (tested: 0.15 warns, 0.20 and 0.25 don't). At PX 0.05 the
+# opening disk is 2*round(mf/2/PX)+1 px: 0.15 -> 3 px (0.15 mm), 0.20 and 0.25 -> 5 px (0.25 mm).
+LAYOUT_MIN_FEATURE = {"relief": 0.20}
 # ---------------------------------------------------------------------------
 
 
@@ -137,14 +142,14 @@ def refill(labels, keep):
     return labels[iy, ix]
 
 
-def clean(labels):
+def clean(labels, min_feature):
     n = len(PALETTE)
     # 1. majority (mode) smoothing: blur each colour's mask and take the argmax
     sig = 0.04 / PX
     prob = np.stack([ndimage.gaussian_filter((labels == k).astype(np.float32), sig) for k in range(n)])
     labels = prob.argmax(0)
-    # 2. morphological opening per colour removes strokes thinner than MIN_FEATURE
-    r = max(1, int(round(MIN_FEATURE / 2 / PX)))
+    # 2. morphological opening per colour removes strokes thinner than min_feature
+    r = max(1, int(round(min_feature / 2 / PX)))
     disk = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * r + 1, 2 * r + 1))
     keep = np.zeros(labels.shape, bool)
     for k in range(n):
@@ -307,34 +312,38 @@ def main():
     img = Image.open(SRC).convert("RGB").resize((w_px, h_px), Image.LANCZOS)
     img = np.asarray(img).astype(float)
 
-    labels = clean(quantize(img))
-
+    raw = quantize(img)
     card = rounded_rect(CARD_W, CARD_H, CORNER_R)
-    regions, taken = {}, Polygon()
-    for k in range(len(PALETTE) - 1, 0, -1):  # light colours first; base colour gets the rest
-        g = trace(labels == k).intersection(card).difference(taken).buffer(0)
-        regions[k] = g
-        taken = unary_union([taken, g])
-    regions[0] = card.difference(taken).buffer(0)
-    for k, (name, hexc) in enumerate(PALETTE):
-        print(f"{name:6s} {hexc}: {100 * regions[k].area / card.area:5.1f}% of face, "
-              f"{len(polys_of(regions[k]))} islands")
-    print(f"tiling check: regions {sum(r.area for r in regions.values()):.2f} mm^2 "
-          f"vs card {card.area:.2f} mm^2")
-    print(f"card: {CARD_W:.1f} x {CARD_H:.1f} mm ({CARD_W / 25.4:.3f} x {CARD_H / 25.4:.3f} in)")
-    for name in layouts:
-        build_layout(name, regions, card)
-
-    # colour preview at print resolution (as seen from the face, not mirrored)
     pal = np.array([hex_rgb(h) for _, h in PALETTE], np.uint8)
     yy, xx = np.mgrid[0:h_px, 0:w_px]
     inside = ((np.minimum(xx, w_px - 1 - xx) * PX >= CORNER_R) | (np.minimum(yy, h_px - 1 - yy) * PX >= CORNER_R)
               | (np.hypot(np.minimum(xx * PX, (w_px - xx) * PX) - CORNER_R,
                           np.minimum(yy * PX, (h_px - yy) * PX) - CORNER_R) <= CORNER_R))
-    prev = np.where(inside[..., None], pal[labels], 255).astype(np.uint8)
-    side = np.concatenate([img.astype(np.uint8), np.full((h_px, 40, 3), 255, np.uint8), prev], 1)
-    Image.fromarray(side).save(OUT / "colour_preview.png")
-    print(f"preview -> {OUT / 'colour_preview.png'}")
+    print(f"card: {CARD_W:.1f} x {CARD_H:.1f} mm ({CARD_W / 25.4:.3f} x {CARD_H / 25.4:.3f} in)")
+
+    cache = {}
+    for name in layouts:
+        mf = LAYOUT_MIN_FEATURE.get(name, MIN_FEATURE)
+        if mf not in cache:
+            labels = clean(raw, mf)
+            regions, taken = {}, Polygon()
+            for k in range(len(PALETTE) - 1, 0, -1):  # light colours first; base colour gets the rest
+                g = trace(labels == k).intersection(card).difference(taken).buffer(0)
+                regions[k] = g
+                taken = unary_union([taken, g])
+            regions[0] = card.difference(taken).buffer(0)
+            print(f"min feature {mf} mm: " + ", ".join(
+                f"{n} {100 * regions[k].area / card.area:.1f}% ({len(polys_of(regions[k]))} islands)"
+                for k, (n, _) in enumerate(PALETTE))
+                + f"; tiling {sum(r.area for r in regions.values()):.2f} of {card.area:.2f} mm^2")
+            cache[mf] = regions
+            # colour preview at print resolution (as seen from the face, not mirrored)
+            prev = np.where(inside[..., None], pal[labels], 255).astype(np.uint8)
+            side = np.concatenate([img.astype(np.uint8), np.full((h_px, 40, 3), 255, np.uint8), prev], 1)
+            fn = OUT / f"colour_preview_{mf:.2f}mm.png"
+            Image.fromarray(side).save(fn)
+            print(f"preview -> {fn}")
+        build_layout(name, cache[mf], card)
 
 
 if __name__ == "__main__":

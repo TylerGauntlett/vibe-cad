@@ -90,6 +90,12 @@ models/<slug>/
 - The CLI's default `flush_volumes_matrix` is a flat 280 mm³. `--flush auto` writes a colour-aware estimate.
 - The A1 process has **no prime tower**: every swap purges into the chute. Per-layer swaps = filaments in
   that layer − 1, because Bambu already groups by filament and chains layers. Dark→light purges cost ~3× light→dark.
+- Slicer warnings such as "floating regions" appear only in the CLI's `result.json` (`warning_message`).
+  `slice_bambu.py` prints them as `WARNING`. Check for that line, because the 3MF doesn't carry them.
+- The CLI writes `enable_prime_tower = 0` for these A1 multi-colour jobs even though the preset (and `--set`) says 1.
+  Tell the user to switch it on in the GUI if wanted.
+- Stacked colour reliefs: strokes under ~0.2 mm trigger "floating regions" (Bambu skips them in some
+  layers). Drop them (the opening disk ≥ 0.25 mm) for multi-layer columns.
 - `slice_info.config` `<filament>` entries and the gcode's `total filament weight` list can drop a slot
   and shift the rest. Count swaps from `M620 S<n>A` lines (the initial load isn't in the gcode).
 

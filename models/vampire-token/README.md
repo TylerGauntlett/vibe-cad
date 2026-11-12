@@ -13,7 +13,7 @@ Source art: `source/vampire_token_art.png` (1060 × 1484 px, sepia + red ink sty
 |---|---|
 | Card | 63 × 88 mm (standard trading card), 3 mm corner radius |
 | Colours (AMS slots) | 1 black `#241B16`, 2 red `#8E1D19`, 3 tan `#B08551`, 4 cream `#F0CB9A` (k-means clusters of the art) |
-| Detail limits | strokes ≥ 0.15 mm kept (Arachne widens them to a 0.34 mm bead), specks < 0.04 mm² dropped |
+| Detail limits | strokes ≥ 0.15 mm kept in `flat-light`, ≥ 0.25 mm in `relief` (see "floating regions" below); Arachne widens thin strokes to a 0.34 mm bead; specks < 0.04 mm² dropped |
 | Material / printer | Bambu PLA Basic, A1 0.4 mm, 0.20 mm Standard + **Arachne walls**, Textured PEI (65 °C) |
 | Plates | 1 |
 
@@ -25,7 +25,7 @@ Source art: `source/vampire_token_art.png` (1060 × 1484 px, sepia + red ink sty
 | Z bands | 0–0.2 all 4 colours · 0.2–0.4 black/red/cream · 0.4–1.6 cream | 0–1.0 cream · 1.0–1.2 tan · 1.2–1.6 red · 1.6–2.0 black |
 | Filament swaps | 5 | **3** (all light → dark) |
 | Purge waste | ~1.8 g | **~0.5 g** |
-| Print | 41 min, 12.7 g | 42 min, 11.9 g |
+| Print | 41 min, 12.7 g | 40 min, 11.9 g |
 | Model grams per slot | black 1.6, red 0.5, tan 0.1, cream 8.8 | black 1.6, red 2.1, tan 1.2, cream 6.9 |
 | Look | smooth, textured-PEI sheen, like a printed card | woodcut / linocut, tactile, top-surface line texture |
 
@@ -42,12 +42,25 @@ Baseline for comparison (layout `flat-black`, the first build: 0.6 mm 4-colour f
   - `relief`: one Z band per colour, ordered light → dark. No layer has two colours, so there are 3 swaps in total, all in the cheap direction. This is the minimum possible for 4 colours.
   - **Batching amortizes swaps**: swaps happen per layer, not per object, so N tokens on one plate still cost 5 (flat) or 3 (relief) swaps.
 - **Flush volumes**: the CLI's default is a flat 280 mm³ for every pair, so `slice_bambu.py --flush auto` writes a colour-aware estimate. For authoritative values, click *Flushing volumes → auto-calculate* in Bambu Studio after setting your real spool colours.
+- **"Floating regions" warning (relief, v2)**: the band geometry is fully nested; a 2D check shows zero overhang between bands.
+  Bambu, though, skips some sub-0.2 mm strokes in one layer and prints them in the next, so its
+  sharp-tail check flags the next layer up. A G-code raster check found nothing really printing in mid-air:
+  only ≤1 mm² blobs, plus normal internal bridging over sparse infill. Even so, the relief now drops strokes
+  under 0.25 mm (`LAYOUT_MIN_FEATURE`), which clears the warning. 0.15 warned; 0.20/0.25 (the same 5 px disk) are clean.
+  The cost is some fine armour and belt highlights (`colour_preview_0.15mm.png` vs `_0.20mm.png`). `flat-light` never warned
+  (every layer is the full card) and keeps the finer detail.
+- **Prime tower**: Bambu Studio shows "the prime tower improves multi-colour print quality and is
+  recommended". The A1 preset enables it, but the CLI writes `enable_prime_tower = 0` into the
+  sliced project (even with `--set enable_prime_tower=1`), so the tower is off. It only runs up to
+  the last swap layer (layer 2 for flat-light, layer 9 for relief), so it adds little filament. It's
+  worth turning on for **flat-light**, whose swaps happen on the visible face (layers 1–2): *Others →
+  Prime tower*, then re-slice. For the relief it's optional; turn it on if colour starts look blobby or under-extruded.
 - **No STEP**: this is raster art turned into a mesh (thousands of traced islands). A STEP of it would be huge and useless for CAD, so the deviation from the usual "always export STEP" rule is deliberate. The model is not built with build123d for the same reason: it uses shapely + trimesh.
 
 ## Files (`out/`)
 - `vampire_token_flat-light_A1.3mf`, `vampire_token_relief_A1.3mf`: sliced A1 projects, 4 AMS slots. Open in Bambu Studio, map slots to your spools, and print from there.
 - `flat-light/`, `relief/`: the part STLs (`vt_<band>_<colour>.stl`, mm, shared coordinate frame) plus `slice_args.txt`.
-- `colour_preview.png`: original vs. the 4-colour print-resolution face. `relief_preview.png`: Bambu's plate render.
+- `colour_preview_0.15mm.png` (flat-light), `colour_preview_0.20mm.png` (relief): original vs. the 4-colour print-resolution face. `relief_preview.png`: Bambu's plate render.
 
 ## Rebuild
 ```powershell
@@ -60,3 +73,4 @@ python ..\..\..\..\tools\slice_bambu.py <contents of slice_args.txt> -o ..\vampi
 ## History
 - 2026-11-11: v1, face-down card with a 0.6 mm 4-colour face on black (9 swaps).
 - 2026-11-11: v2, colour-swap optimization: `flat-light` (5 swaps) and `relief` (3 swaps) layouts. `slice_bambu.py` gained `--assemble/--extruders/--colors/--flush/--set`.
+- 2026-11-11: v3, relief strokes ≥ 0.25 mm to clear Bambu's "floating regions" warning. `slice_bambu.py` now prints slicer warnings. Prime tower guidance added.
