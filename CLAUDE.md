@@ -73,6 +73,8 @@ models/<slug>/
 - To split parts, intersect with half-space boxes (`full & box`). Add tabs with `+` and cut sockets with `-`, making each socket with `offset(sketch, clearance, kind=Kind.ARC)`.
 - `a & b` returns **None** when the shapes don't overlap. That's the quick check that mating parts don't collide.
 - The B-rep `.volume` was about 1.3% off on a spline solid. Trust the mesh volume from `check_mesh.py`.
+- Build a piecewise profile (e.g. ramp + cosine) as ONE `Spline` through dense samples. Separate G1-joined
+  Bezier/Spline edges get fused into one face by the post-extrude clean, and it then takes minutes to tessellate.
 - `export_stl(shape, path, tolerance=0.01, angular_tolerance=0.1)` gives smooth curves at a manageable size (about 20k triangles for a 6" wave half).
 
 ## Bambu Studio CLI gotchas (handled in slice_bambu.py)
@@ -115,13 +117,32 @@ models/<slug>/
 - Small text (< ~3 mm caps) from raster art is unprintable: re-set it as vector text in a condensed sans with tracking
   (Bahnschrift SemiBold Condensed via a fontTools instance). Judge fonts by simulating the nozzle: open the glyphs with
   0.42 mm, close with 0.3 mm. Use the nonzero fill rule for glyphs; even-odd punches holes where variable-font contours overlap.
+- Thin frame lines in raster art (gold rims around text boxes) survive clean-up only in patches. Redraw them: find the
+  box interior (connected component + fill holes + smoothing), then draw a uniform rim and outline by dilation.
+- Bambu silently skips islands much under 0.3 mm² (a 0.49 mm-square i-dot vanished; 0.29 mm² printed). Verify
+  against the G-code. Align the plate offset by fitting, because outer-wall centrelines sit half a bead inside the edge.
+- Arachne leaves hollow slits in strips 2–3 beads wide (~1.0–1.4 mm): the extra bead stops short. `--set
+  wall_transition_angle=30 --set wall_transition_filter_deviation=50%` filled them (measured on models/vampire-dial).
+  Adding `min_bead_width=50% wall_transition_length=50%` fills the V-dents where single-bead letter strokes
+  join (n/m/r/p shoulders, k). Text with strokes under ~0.85 mm prints as centrelines and will always round off a little.
+- Box frames and other geometric linework: rebuild them as exact vector shapes (rounded rectangles plus offset rims),
+  not traced pixels. Traced rims wobble even after smoothing.
 - Stack colours in Z "bands" to control swaps: the face-up light→dark relief needs only 3 swaps for 4 colours.
 - Mechanical parts on the same plate (see models/vampire-dial) can add **zero** swaps: give every part the
   same global Z bands, so each layer is still one filament. Lay several objects out as parts of ONE
   `--assemble` object; the slicer keeps their relative positions.
 
+## Legibility at card scale (see models/vampire-counter)
+- Traced raster art doesn't survive a 0.4 mm nozzle at card size. Draw the scene as vector shapes (painter's algorithm
+  over 4 regions that tile the card) with outlines ≥ 0.7 mm, and absorb any island < 1 mm² into its neighbour.
+- Dial digits: to hide both neighbours, a value W mm wide on a 9-position ring needs a ring radius of about 1.75·W.
+  8 mm condensed "N/N" (12 mm wide) → r 21 → a Ø59 wheel, the most a 63 mm card can hold. Scale the slash to the digit height.
+
 ## Printing design rules of thumb
 - Design parts to print flat on their largest flat face, with no supports. Keep overhangs at or under 45°.
+- Snap/detent springs in PLA: keep the peak flex strain ≤ ~0.6 % (taper the cantilever, fillet its root, make the
+  pocket wall an over-travel stop). For a detent that centres firmly, use V notches (~35° flanks) with a round nub
+  seated on both flanks and 0.3–0.4 mm preload, not a small nub in a wide round scallop (see models/vampire-counter).
 - Mating clearance: about **0.15 mm per side** for press- or slide-fit joints on the A1 (elephant-foot compensation is 0.075 mm by default).
 - Place split seams in thick regions (e.g. on a crest rather than in a valley) for joint strength.
 - For fabric-wrapped inserts, the model dimension is the bare core: subtract about 2× the fabric thickness plus clearance to fit a cavity.
@@ -133,6 +154,7 @@ depth-sorting artifacts, not holes. Trust `open_edges`. View the PNG with the Re
 ## Model index
 | Model | Folder | Status |
 |---|---|---|
-| Wave jewelry-box insert (12×5.5×1", 2 dovetailed halves) | `models/wave-insert/` | v3 sliced for A1 |
+| Wave jewelry-box insert (11.4×4.9×1", 5 waves + end ramps, 2 dovetailed halves) | `models/wave-insert/` | v4 sliced for A1 (1 plate) |
 | Vampire token card, 4-colour AMS (63×88 mm; flat-light + relief layouts) | `models/vampire-token/` | v2 sliced for A1 |
 | Vampire token with internal 1/1–9/9 dial wheel + detent (63×92×4.8 mm, 3 parts, 4-colour relief) | `models/vampire-dial/` | v1 sliced for A1 |
+| Vampire counter: legible redesign, vector vampire-knight scene, 8 mm 1/1–9/9 dial (63×88×4.8 mm, 3 parts) | `models/vampire-counter/` | v1.2 sliced for A1 |
