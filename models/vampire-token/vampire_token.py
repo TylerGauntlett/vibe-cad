@@ -242,9 +242,17 @@ def extrude(geom, z0, z1):
     # manifold. The resulting ~4 micron seams between colours are far below slicer resolution.
     # If rings or islands still touch somewhere (vertex on edge, diagonal pixel corners), the
     # whole region is retried with a slightly larger inset; 10 microns is still invisible.
-    base = set_precision(geom, 0.001)
+    # set_precision() also attaches its grid to the geometry and GEOS runs later operations on it.
+    # A 2 micron buffer on a 1 micron grid can collapse a thin slanted shape to nothing (it deleted
+    # the "/" of 2/2, 4/4, 6/6, 9/9 on the vampire-dial wheel), so snap the coordinates, then drop
+    # the grid (grid 0 = floating precision) before buffering.
+    base = set_precision(set_precision(geom, 0.001), 0)
     for inset in (0.002, 0.004, 0.006, 0.010):
         g = set_precision(base.buffer(-inset, join_style="mitre"), 0.0005)
+        # an inset should only lose a perimeter-wide strip; more means a shape collapsed
+        lost = base.area - g.area - 1.5 * inset * base.length
+        if lost > 1e-3:
+            print(f"  warning: inset {inset} at z {z0}-{z1} lost {lost:.3f} mm^2 of area")
         meshes = []
         for p in polys_of(g):
             if p.area < 1e-4:

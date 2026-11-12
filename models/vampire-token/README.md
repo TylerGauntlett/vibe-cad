@@ -74,3 +74,4 @@ python ..\..\..\..\tools\slice_bambu.py <contents of slice_args.txt> -o ..\vampi
 - 2026-11-11: v1, face-down card with a 0.6 mm 4-colour face on black (9 swaps).
 - 2026-11-11: v2, colour-swap optimization: `flat-light` (5 swaps) and `relief` (3 swaps) layouts. `slice_bambu.py` gained `--assemble/--extruders/--colors/--flush/--set`.
 - 2026-11-11: v3, relief strokes ≥ 0.25 mm to clear Bambu's "floating regions" warning. `slice_bambu.py` now prints slicer warnings. Prime tower guidance added.
+- 2026-11-11: `extrude()` fix: drop the `set_precision` grid before the 2 µm inset (GEOS ran the buffer on the grid and could collapse thin slanted shapes). The art lost only ~0.1–0.2 mm² per colour, so the v3 outputs were not rebuilt.

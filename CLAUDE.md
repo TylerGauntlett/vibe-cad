@@ -107,7 +107,18 @@ models/<slug>/
 - Triangulate caps with `shapely.constrained_delaunay_triangles` + `trimesh.creation.extrude_triangulation`.
   trimesh's default earcut mis-triangulates polygons with hundreds of holes, which gives non-manifold walls.
   Inset each region 2–10 µm to break pinch points, and verify the whole region is manifold.
+- `shapely.set_precision(g, grid)` **attaches** the grid to the geometry, and later buffers run on it: a 2 µm inset
+  on a 1 µm grid deleted thin slanted strokes (the / in 2/2). Reset it with `set_precision(g, 0)` before buffering.
+- Printable art ≠ clean art: in a relief, anything under one bead (~0.45 mm wide) or ~1 mm² prints as broken beads or stray
+  dots. Open every colour to ≥ 0.5 mm and drop islands < 1 mm², but zone it. Faces get milder settings. Thin frame lines
+  get a light clean plus 0.1 mm/side dilation instead, because opening deletes them (models/vampire-dial `ZONES`).
+- Small text (< ~3 mm caps) from raster art is unprintable: re-set it as vector text in a condensed sans with tracking
+  (Bahnschrift SemiBold Condensed via a fontTools instance). Judge fonts by simulating the nozzle: open the glyphs with
+  0.42 mm, close with 0.3 mm. Use the nonzero fill rule for glyphs; even-odd punches holes where variable-font contours overlap.
 - Stack colours in Z "bands" to control swaps: the face-up light→dark relief needs only 3 swaps for 4 colours.
+- Mechanical parts on the same plate (see models/vampire-dial) can add **zero** swaps: give every part the
+  same global Z bands, so each layer is still one filament. Lay several objects out as parts of ONE
+  `--assemble` object; the slicer keeps their relative positions.
 
 ## Printing design rules of thumb
 - Design parts to print flat on their largest flat face, with no supports. Keep overhangs at or under 45°.
@@ -124,3 +135,4 @@ depth-sorting artifacts, not holes. Trust `open_edges`. View the PNG with the Re
 |---|---|---|
 | Wave jewelry-box insert (12×5.5×1", 2 dovetailed halves) | `models/wave-insert/` | v3 sliced for A1 |
 | Vampire token card, 4-colour AMS (63×88 mm; flat-light + relief layouts) | `models/vampire-token/` | v2 sliced for A1 |
+| Vampire token with internal 1/1–9/9 dial wheel + detent (63×92×4.8 mm, 3 parts, 4-colour relief) | `models/vampire-dial/` | v1 sliced for A1 |
