@@ -2,8 +2,11 @@
 """
 Wave jewelry-box insert, split into two dovetailed halves for a 256 mm print bed.
 
-Assembled: 12" long x 5.5" wide; valley floor 0.4", crests 1.0" (0.6" wave).
-Each half is 6" long (half A also carries the dovetail tabs that key into B).
+Assembled: 11.4" long x 4.9" wide x 1.0" tall; valley floor 0.4", crests 1.0".
+Profile matches the proof of concept wave_jewelry_insert_1in_end_height.stl:
+5 cosine waves, with each end ramping straight up to a 1.0" edge at the box wall
+(a cubic ramp, not a rounded crest). The seam sits in the centre valley; half A
+carries the dovetail tabs that key into half B.
 
 Run (from the repo root):  .venv\\Scripts\\python.exe models\\wave-insert\\wave_insert.py
 Outputs (millimetres) in out\\: wave_insert_A.stl, wave_insert_B.stl, wave_insert_assembled.step
@@ -17,12 +20,12 @@ from build123d import (
 )
 
 # ---- Parameters (inches unless noted) ------------------------------------
-LENGTH = 12.0            # assembled length (X); split into two equal halves
-WIDTH = 5.5              # Y; the wave ridges run across this direction
+LENGTH = 11.4            # assembled length (X); split into two equal halves
+WIDTH = 4.9              # Y; the wave ridges run across this direction
 VALLEY = 0.4             # material thickness at the bottom of each valley
-PEAK = 1.0               # overall height at the crests (VALLEY + 0.6" wave)
-PERIOD = 2.0             # crest-to-crest spacing; crests sit at both ends
-SAMPLES_PER_WAVE = 24
+PEAK = 1.0               # height at the interior crests and at both end walls
+WAVES = 5                # wave periods along the length (period = LENGTH / WAVES)
+SAMPLES_PER_WAVE = 48
 
 # Dovetail joint (millimetres)
 DT_NECK = 18.0           # tab width at the seam
@@ -33,18 +36,27 @@ DT_COUNT = 2             # tabs spread evenly across the width
 # --------------------------------------------------------------------------
 
 L, W = LENGTH * IN, WIDTH * IN
-SEAM = L / 2
+SEAM = L / 2             # centre valley (WAVES is odd)
 z_lo, z_hi = VALLEY * IN, PEAK * IN
 mid, amp = (z_hi + z_lo) / 2, (z_hi - z_lo) / 2
-P = PERIOD * IN
+P = L / WAVES
+H = P / 2                # wall-to-first-valley run of each end ramp
 
 
 def z(x):
-    # +cos starts and ends on a crest, so both ends ascend toward the walls
+    d = min(x, L - x)    # distance from the nearer end wall
+    if d < H:
+        # End ramp: VALLEY + WAVE*(1 - 1.5t + 0.5t^3), t = d/H. Leaves the wall at
+        # ~38 deg with zero curvature and meets the first valley tangentially.
+        t = d / H
+        return z_lo + 2 * amp * (1 - 1.5 * t + 0.5 * t ** 3)
+    # Interior: cosine with crests at x = k*P and valleys at x = (k + 1/2)*P
     return mid + amp * math.cos(2 * math.pi * x / P)
 
 
-n = round(L / P * SAMPLES_PER_WAVE)
+# One spline through dense samples. Separate Bezier/Spline edges get fused by
+# the post-extrude clean into a single badly parameterised face that won't mesh.
+n = WAVES * SAMPLES_PER_WAVE
 pts = [(L * i / n, z(L * i / n)) for i in range(n + 1)]
 
 # Full-length wave solid
@@ -98,6 +110,8 @@ def report(name, shape):
 report("Full ", full)
 report("Half A", half_a)
 report("Half B", half_b)
+clash = half_a & half_b   # the halves touch on the seam face, so test volume, not None
+print(f"A/B overlap volume: {0 if clash is None else clash.volume:.3f} mm^3", flush=True)
 
 OUT = Path(__file__).resolve().parent / "out"
 OUT.mkdir(exist_ok=True)

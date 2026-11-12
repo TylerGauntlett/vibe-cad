@@ -18,9 +18,10 @@ existing 1/1 but that can change if needed."
 | Wheel | Ø 33 mm, 9 thumb scallops; the rim protrudes **2.4 mm** (valleys 1.2 mm) past the right edge |
 | Turning | push the rim **up** to count up, down to count down |
 | Colours | the same 4 AMS slots as the token: 1 black `#241B16`, 2 red `#8E1D19`, 3 tan `#B08551`, 4 cream `#F0CB9A` |
-| Material / printer | Bambu PLA Basic, A1 0.4 mm, 0.20 mm Standard + Arachne walls, Textured PEI (65 °C) |
+| Material / printer | Bambu PLA Basic, A1 0.4 mm, 0.20 mm Standard + Arachne walls (`wall_transition_angle` 30, `wall_transition_filter_deviation` 50%, `min_bead_width` 50%, `wall_transition_length` 50%), Textured PEI (65 °C) |
 | Plates | 1: front, back and wheel side by side (one object, 16 colour parts) |
-| Art | simplified for a 0.4 mm nozzle: every colour ≥ 0.5 mm wide, no islands < 1 mm² (face: 0.45 mm / 0.4 mm²); frame lines and set symbol thickened 0.1 mm per side, title letters 0.2 mm |
+| Art | simplified for a 0.4 mm nozzle: every colour ≥ 0.5 mm wide, no islands < 1 mm² (face: 0.45 mm / 0.4 mm²); set symbol thickened 0.1 mm per side; the 3 framed boxes redrawn with a uniform 0.6 mm tan rim + 0.5 mm black outline |
+| Title | re-set as vector text: Cambria Bold (+0.1 mm bold, +0.35 mm spacing), V 4.2 mm + small caps 3.5 mm (art: 3.2 / 2.7) |
 | Type line | re-set as vector text, Bahnschrift SemiBold Condensed (+0.04 mm bold, +0.45 mm letter spacing), 2.7 mm cap height |
 | Print | **56 min, 25.9 g, 3 filament swaps, ~0.5 g purge** |
 | Model grams per slot | black 9.1, red 4.8, tan 2.5, cream 14.8 (solid volume; the 15 % infill makes the real total lower) |
@@ -102,8 +103,44 @@ existing 1/1 but that can change if needed."
     includes the back and wheel.
   - The title's cream letters are 1 mm-deep slots, and on the print their floor barely showed. They now grow
     0.2 mm per side (+28% area).
+  - (v1.4) The traced title letters, thickened enough to show in their slots, merged into blobs in the slicer. The
+    title is now vector text as well: Cambria Bold won a nozzle simulation (cream slots ≥ 0.45 mm, black walls
+    ≥ 0.42 mm) over Georgia, Constantia, Times and DejaVu Serif. It is 25% larger than the art's.
   - The wheel digits had 17–30% of their ink under a bead (the same failure as the printed 1/1). Emboldening
     them 0.05 mm brings that to ~2%, which is corner rounding only.
+
+- **Framed boxes (v1.4)**: after the clean-up, the art's thin gold rims came out solid on some sides and as brown dashes on
+  others. `draw_frames()` finds each box's interior (title bar, type line, P/T box) in the lightly cleaned art and
+  smooths it. It then draws a uniform 0.6 mm tan rim and a 0.5 mm black outline round it, and clears stray colours
+  inside. Where the type and P/T boxes' rims run closer than a bead, the strip between them becomes rim.
+  - The title bar's black inside leaks into the card's black border through gaps in its gold line, so that line is
+    sealed first (0.8 mm closing).
+  - The art's flag and spear tips poke above the title bar into the top border. Everything from the card's top edge
+    down to the bar's outline (`clear_above`) is plain black.
+- **Every island prints (v1.4)**: a G-code check found that Bambu silently skipped the 0.49 mm-square dot of the "i".
+  Text pieces under 0.45 mm² now grow to at least 0.75 mm across. After that, every island of every colour has
+  toolpaths in its top layer. A 0.29 mm² art island printed, so the cut-off lies between the two.
+
+- **Hollow streamer (v1.6)**: the 1.0–1.4 mm red banner streamer (top right) sliced hollow. Arachne's 3rd bead stopped
+  short wherever the strip narrowed, leaving a slit that showed tan through it (visible in the layer view). Tuned
+  `SLICER_SET` by measuring uncovered area in the G-code:
+  - Default Arachne: streamer 0.23 mm² open, 35 gaps on the black top layer.
+  - Transition angle 30° + filter deviation 50%: streamer fully filled, 20 gaps.
+  - Classic walls, 3 walls, or a smaller min bead width were all worse.
+
+- **Letter junctions (v1.7)**: at 2.7 mm the type line's strokes are ~0.6 mm, one bead. Arachne prints one centreline
+  per stroke with round ends, so the tops of n/m/r/p (stem meets arch) and the k's junction showed small V-dents
+  in the slicer preview. The design is solid there. These dents can't be designed away: strokes would need about
+  0.85 mm (two beads, so the wall traces the outline), and neither lowercase nor all-caps fits the box at that
+  weight (best all-caps: 0.7 mm strokes). Filling the letters' notches by closing was also tried; it sealed the e's
+  opening before it helped the n.
+  - What helped was Arachne tuning: `min_bead_width` 50% + `wall_transition_length` 50%, on top of v1.6's
+    transition settings. The uncovered letter area went from 3.03 to 1.90 mm², the worst glyphs (m, k) dropped
+    from 0.24 to 0.14 mm², and the streamer stays solid.
+- **Vector box frames (v1.7)**: the pixel-traced rims of the type line and P/T box still wobbled, and were ragged
+  where the two boxes meet. Both are now exact rounded rectangles: the type line's fitted to its interior in the
+  art, the P/T box centred on the window. Each gets a 0.6 mm tan rim and a 0.5 mm black outline. Where the boxes
+  meet, the two rims overlap and are joined with a 0.45 mm fillet.
 
 ## Files (`out/`)
 - `vampire_dial_A1.3mf`: sliced A1 project, 4 AMS slots. Open in Bambu Studio, map slots to your spools, and print from there.
@@ -126,3 +163,7 @@ Depends on `models/vampire-token/vampire_token.py` (art pipeline and source imag
 - 2026-11-11: v1.1, fixed the missing "/" on 2/2, 4/4, 6/6, 9/9: the shared `extrude()` inset collapsed thin slanted shapes (see `models/vampire-token`). Re-sliced: same 1 h 02 min, 26.1 g, 3 swaps.
 - 2026-11-11: v1.2, readable type line (vector Bahnschrift SemiBold Condensed) and simplified art (no specks or slivers under a bead; frame lines thickened). 56 min, 25.9 g, 3 swaps, no slicer warnings.
 - 2026-11-11: v1.3, after a photo of the v3 print: wheel digits emboldened 0.05 mm (no sub-bead strokes), title letters grown 0.2 mm. 56 min, 25.9 g, 3 swaps.
+- 2026-11-11: v1.4, uniform redrawn box frames (no brown fragments), vector title (Cambria Bold), i-dot enlarged so Bambu prints it. 56 min, 25.9 g, 3 swaps.
+- 2026-11-11: v1.5, top border cleared: no red/white flag and spear tips above the title bar.
+- 2026-11-11: v1.6, Arachne transition tuning (angle 30, deviation 50%): the banner streamer prints solid. 56 min, 26.0 g, 3 swaps.
+- 2026-11-11: v1.7, exact vector frames for the type line and P/T box (straight rims, filleted joint, P/T box centred on the window). Arachne `min_bead_width`/`wall_transition_length` 50% for fuller letter junctions. 56 min, 25.9 g, 3 swaps.

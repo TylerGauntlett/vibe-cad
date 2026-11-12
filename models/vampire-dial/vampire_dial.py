@@ -71,11 +71,32 @@ FRAME_MIN_FEATURE = 0.15                             # frames/title: v3-style li
 # wide their floor barely shows (seen on the v3 print), so they grow more.
 ZONES = [
     ((26.5, 26.0, 37.0, 36.5), "detail", (), 0),               # face
-    ((1.5, 1.8, 61.5, 9.4), "frame", (CREAM, TAN), 0.20),      # title bar: cream letters, gold lines
-    ((2.4, 74.2, 60.6, 80.8), "frame", (TAN,), 0.10),          # type-line box border
     ((53.3, 75.4, 57.6, 79.8), "frame", (BLACK,), 0.10),       # set symbol
-    ((48.6, 80.5, 59.8, 86.3), "frame", (TAN,), 0.10),         # P/T box border (window cuts the inside)
 ]
+
+# Framed boxes (title bar, type line, P/T box). The art's thin gold rims came out of the clean-up as
+# brown dashes on some sides and solid lines on others, so each box is redrawn: its interior is found
+# (the region of `inside` colour holding `seed`, holes filled, smoothed), then a uniform tan rim and
+# a black outline are drawn round it, and the interior is cleared to `inside` + `keep` colours.
+FRAMES = [
+    # the title bar's black inside touches the card's black border through gaps in its gold line, so
+    # that line is sealed (closed by `seal` mm) and the search is limited to `bbox` (art mm)
+    # clear_above: the flag and spear tips poke above the bar into the top border; make that band black
+    dict(name="title bar", seed=(8.0, 5.6), inside=BLACK, keep=(), seal=0.8, bbox=(1.0, 1.5, 62.0, 9.8),
+         clear_above=True),
+    dict(name="type line", seed=(30.0, 77.6), inside=CREAM, keep=(BLACK,)),  # keeps the set symbol
+    dict(name="P/T box", seed=(50.3, 83.44), inside=CREAM, keep=()),        # the window cuts it anyway
+]
+FRAME_SMOOTH = 0.8              # opening + closing of the interior outline (mm)
+FRAME_RIM = 0.6                 # tan rim width: over one bead, so it prints as a solid line
+FRAME_OUTLINE = 0.5             # black outline between the rim and the art
+FRAME_KEEP_AREA = 0.8           # inside a box, patches of `keep` colours smaller than this are cleared
+# The pixel-traced rims of the type line and P/T box still wobbled (and got ragged where the two boxes
+# meet), so those two are finally rebuilt as exact vector rounded rectangles fitted to the interiors
+# found above, with the rims and outlines offset from them; where the two boxes meet their rims
+# overlap and are joined with a small fillet. (The title bar's chamfered shape stays as traced.)
+VECTOR_BOXES = {"type line": 1.3, "P/T box": 1.1}    # name -> corner radius of the interior (mm)
+PT_MARGIN = (1.5, 0.8)          # the P/T box is centred on the window: margin around it (x, y)
 FINAL_MIN_AREA = 0.25           # last pass over the composite: islands left at zone seams
 
 # Type line: the art's lettering is a serif at 2.1 mm cap height with 0.3 mm crossbars - below what
@@ -88,7 +109,18 @@ TYPE_AREA = (6.2, 75.30, 50.2, 79.94)      # new text: left edge, interior top, 
 TYPE_FONT = (r"C:\Windows\Fonts\bahnschrift.ttf", {"wght": 600, "wdth": 75})  # Bahnschrift SemiBold Condensed
 TYPE_BOLDEN = 0.04              # per side
 TYPE_TRACK = 0.45               # extra letter spacing (mm)
-TYPE_MAX_H = 3.6                # cap top to descender
+TYPE_MAX_H = 3.7                # cap top to descender (box interior is 4.6)
+TEXT_MIN_PART = (0.45, 0.75)    # glyph pieces under 0.45 mm^2 (the i's dot: 0.49 mm square, which Bambu
+                                # silently skipped) grow until at least 0.75 mm across
+
+# Title: the traced serif letters, thickened enough to show as 1 mm-deep cream slots, merged into
+# blobs. Re-set as a large V + small caps (like the art) in a bold serif, emboldened, 25 % larger.
+TITLE_RUNS = [("V", 1.0), ("AMPIRE", 0.84)]
+TITLE_FONT = r"C:\Windows\Fonts\cambriab.ttf"   # Cambria Bold (fallback DejaVu Serif Bold)
+TITLE_CAP = 4.2                 # height of the V
+TITLE_BOLDEN = 0.10
+TITLE_TRACK = 0.35
+TITLE_CENTRE = (31.5, 5.55)     # art mm from the top-left (the art's lettering is centred at 31.2, 5.55)
 
 # Z bands (shared by every part, so each layer is one filament). Same as vampire-token "relief".
 BANDS = [(0.0, 1.0, CREAM), (1.0, 1.2, TAN), (1.2, 1.6, RED), (1.6, 99.0, BLACK)]
@@ -136,6 +168,16 @@ ARM_GAP = 0.4                   # clearance around the arm
 SWING = SCALLOP_DEPTH + PRELOAD + 0.4   # room for the tip to deflect outward
 
 PLATE_GAP = 8.0                 # spacing of the three objects on the bed
+# Slicer overrides. Arachne prints strokes down to ~0.1 mm. With its default transitions, a region
+# 2-3 beads wide (e.g. the 1.0-1.4 mm banner streamer, top right) gets a 3rd bead that stops short
+# and leaves a hollow slit showing the colour below. Measured on this card: angle 30 + deviation 50%
+# filled the streamer (0.23 -> 0 mm^2 open) and halved the gaps in the black top layer (35 -> 19);
+# more walls or a smaller min bead width made it worse.
+# v1.7: also min_bead_width 50% + wall_transition_length 50%. Single-bead letter strokes (0.6 mm) left
+# V-dents where strokes join (tops of n/m/r/p, the k); measured on the type line: 3.03 -> 1.90 mm^2 of
+# the letters left uncovered, streamer still solid, black top-layer gaps 19 -> 18.
+SLICER_SET = ["wall_generator=arachne", "wall_transition_angle=30", "wall_transition_filter_deviation=50%",
+              "min_bead_width=50%", "wall_transition_length=50%"]
 # ---------------------------------------------------------------------------
 
 C = np.array(PT_BOX) - DIGIT_R * np.array([np.cos(np.radians(WIN_ANGLE)), np.sin(np.radians(WIN_ANGLE))])
@@ -315,7 +357,74 @@ def art_labels():
             labels[sl] = detail[sl]
         else:
             labels[sl] = thicken(light, list(grow), amount)[sl] if grow else light[sl]
+    labels = draw_frames(labels, light)
     return drop_islands(labels, FINAL_MIN_AREA)
+
+
+FRAME_FOUND = {}   # name -> interior bbox found in the art (art mm from the top-left: x0, y0, x1, y1)
+
+
+def draw_frames(labels, light):
+    """Redraw each FRAMES box: smoothed interior, uniform tan rim, black outline, clean inside."""
+    def grow(m, d):
+        return cv2.dilate(m.astype(np.uint8), _disk_px(2 * d)).astype(bool)
+    boxes = []
+    for f in FRAMES:
+        r, c = int(round(f["seed"][1] / vt.PX)), int(round(f["seed"][0] / vt.PX))
+        assert light[r, c] == f["inside"], f"{f['name']}: seed is not on the box interior"
+        mask = light == f["inside"]
+        if "seal" in f:
+            mask &= ~cv2.morphologyEx((~mask).astype(np.uint8), cv2.MORPH_CLOSE, _disk_px(f["seal"])).astype(bool)
+        if "bbox" in f:
+            x0, y0, x1, y1 = (int(round(v / vt.PX)) for v in f["bbox"])
+            clip = np.zeros_like(mask)
+            clip[y0:y1, x0:x1] = True
+            mask &= clip
+        cc, _ = ndimage.label(mask)
+        m = ndimage.binary_fill_holes(cc == cc[r, c])
+        m = cv2.morphologyEx(m.astype(np.uint8), cv2.MORPH_OPEN, _disk_px(FRAME_SMOOTH))
+        m = ndimage.binary_fill_holes(cv2.morphologyEx(m, cv2.MORPH_CLOSE, _disk_px(FRAME_SMOOTH)).astype(bool))
+        area = m.sum() * vt.PX ** 2
+        assert 20 < area < 600, f"{f['name']}: interior of {area:.0f} mm^2 - did it leak out of its frame?"
+        rows, cols = np.nonzero(m)
+        FRAME_FOUND[f["name"]] = (cols.min() * vt.PX, rows.min() * vt.PX, (cols.max() + 1) * vt.PX, (rows.max() + 1) * vt.PX)
+        rim = grow(m, FRAME_RIM) & ~m
+        outline = grow(m, FRAME_RIM + FRAME_OUTLINE) & ~grow(m, FRAME_RIM)
+        boxes.append((f, m, rim, outline))
+    inside = np.zeros(labels.shape, bool)
+    for f, m, rim, outline in boxes:     # outlines first, rims over them, interiors last
+        labels[outline] = BLACK
+    for f, m, rim, outline in boxes:
+        labels[rim] = TAN
+    for f, m, rim, outline in boxes:
+        allowed = np.isin(labels, (f["inside"], *f["keep"]))
+        if f["keep"]:  # small patches of the kept colours are fragments, not features
+            for k in f["keep"]:
+                cc, n = ndimage.label((labels == k) & m)
+                if n:
+                    small = np.bincount(cc.ravel()) * vt.PX ** 2 < FRAME_KEEP_AREA
+                    small[0] = False
+                    allowed &= ~small[cc]
+        labels[m & ~allowed] = f["inside"]
+        inside |= m
+        if f.get("clear_above"):  # the card border above the box (down to its outline's bottom) is plain black
+            last = np.nonzero((m | rim | outline).any(1))[0].max()
+            band = np.zeros(labels.shape, bool)
+            band[:last + 1] = True
+            labels[band & ~m & ~rim] = BLACK
+    # where two rims run closer than a bead, the black strip between them can't print: make it rim
+    rims = np.zeros(labels.shape, bool)
+    for f, m, rim, outline in boxes:
+        rims |= rim
+    bridge = cv2.morphologyEx(rims.astype(np.uint8), cv2.MORPH_CLOSE, _disk_px(0.5)).astype(bool)
+    labels[bridge & ~rims & ~inside] = TAN
+    # the art just outside the outlines: slivers left against the new outline go to their neighbours
+    near = grow(inside, FRAME_RIM + FRAME_OUTLINE + 1.0) & ~grow(inside, FRAME_RIM + FRAME_OUTLINE)
+    keep = np.zeros(labels.shape, bool)
+    for k in range(len(vt.PALETTE)):
+        keep |= cv2.morphologyEx((labels == k).astype(np.uint8), cv2.MORPH_OPEN, _disk_px(ART["stroke"])).astype(bool)
+    labels = np.where(near & ~keep, vt.refill(labels, keep | ~near), labels)
+    return labels
 
 
 def type_font():
@@ -333,22 +442,55 @@ def type_font():
     return FontProperties(fname=str(dst))
 
 
-def type_line():
-    """The type line as vector text, letter by letter (kerned positions + TYPE_TRACK), emboldened,
-    left-aligned in the type box and centred vertically. Card frame (y up)."""
+def lay_out(runs, fp, k, track, bolden):
+    """Set text letter by letter: kerned advances + `track` mm extra spacing, each run of
+    characters at its own relative size (for small caps), scaled k mm/em, then emboldened."""
     from matplotlib.textpath import text_to_path
-    fp = type_font()
     size = fp.get_size_in_points()
 
     def width(s):  # advance width in em, including trailing spaces
         return (text_to_path.get_text_width_height_descent(s + "|", fp, ismath=False)[0]
                 - text_to_path.get_text_width_height_descent("|", fp, ismath=False)[0]) / size
+    x, parts = 0.0, []
+    for text, rel in runs:
+        sc = k * rel
+        for i, c in enumerate(text):
+            if c != " ":
+                parts.append(affinity.translate(affinity.scale(glyphs(c, fp), sc, sc, origin=(0, 0)),
+                                                x + width(text[:i]) * sc + track * i, 0))
+        x += width(text) * sc + track * len(text)
+    g = unary_union(parts).buffer(bolden, join_style="round")
+    area, size = TEXT_MIN_PART
+    out = []
+    for p in vt.polys_of(g):
+        b = p.bounds
+        narrow = min(b[2] - b[0], b[3] - b[1])
+        out.append(p.buffer((size - narrow) / 2, join_style="round") if p.area < area and narrow < size else p)
+    return unary_union(out)
+
+
+def title():
+    """The title as vector text, centred where the art's lettering was. Card frame (y up)."""
+    if Path(TITLE_FONT).exists():
+        fp = FontProperties(fname=TITLE_FONT)
+    else:
+        print(f"  warning: {TITLE_FONT} not found, title falls back to DejaVu Serif Bold")
+        fp = FontProperties(family="DejaVu Serif", weight="bold")
+    k = (TITLE_CAP - 2 * TITLE_BOLDEN) / glyphs(TITLE_RUNS[0][0][0], fp).bounds[3]
+    g = lay_out(TITLE_RUNS, fp, k, TITLE_TRACK, TITLE_BOLDEN)
+    minx, miny, maxx, maxy = g.bounds
+    print(f"title: {fp.get_name()}, V {TITLE_CAP:.1f} mm, small caps {TITLE_CAP * TITLE_RUNS[1][1]:.1f} mm, "
+          f"{maxx - minx:.1f} mm long")
+    cx, cy = TITLE_CENTRE[0], CARD_H - TITLE_CENTRE[1]
+    return affinity.translate(g, cx - (minx + maxx) / 2, cy - (miny + maxy) / 2)
+
+
+def type_line():
+    """The type line as vector text, left-aligned in the type box and centred vertically."""
+    fp = type_font()
 
     def layout(k):
-        parts = [affinity.translate(affinity.scale(glyphs(c, fp), k, k, origin=(0, 0)),
-                                    width(TYPE_TEXT[:i]) * k + TYPE_TRACK * i, 0)
-                 for i, c in enumerate(TYPE_TEXT) if c != " "]
-        return unary_union(parts).buffer(TYPE_BOLDEN, join_style="round")
+        return lay_out([(TYPE_TEXT, 1.0)], fp, k, TYPE_TRACK, TYPE_BOLDEN)
 
     x0, top, x1, bottom = TYPE_AREA
     k = 1.0
@@ -362,6 +504,54 @@ def type_line():
     cap = glyphs("T", fp).bounds[3] * k
     print(f"type line: {fp.get_name()}, cap height {cap:.2f} mm, {maxx - minx:.1f} mm long")
     return affinity.translate(g, x0 - minx, cy - (miny + maxy) / 2)
+
+
+def vector_boxes(regions, card):
+    """Replace the traced type-line and P/T boxes with exact rounded rectangles: black outline, tan rim,
+    cream inside (keeping the set symbol), and the two rims filleted together where the boxes meet."""
+    def rr(x0, y0, x1, y1, r):
+        return box(x0 + r, y0 + r, x1 - r, y1 - r).buffer(r, quad_segs=16)
+    inner = {}
+    for name, r in VECTOR_BOXES.items():
+        if name == "P/T box":   # concentric with the window (the traced box sat 0.6 mm off-centre)
+            wx0, wy0, wx1, wy1 = window().bounds
+            mx, my = PT_MARGIN
+            inner[name] = rr(wx0 - mx, wy0 - my, wx1 + mx, wy1 + my, r)
+        else:
+            x0, t0, x1, t1 = FRAME_FOUND[name]      # art mm from the top: card y = CARD_H - t
+            inner[name] = rr(x0, CARD_H - t1, x1, CARD_H - t0, r)
+    ti, pi = inner["type line"], inner["P/T box"]
+    rim = lambda g: g.buffer(FRAME_RIM, join_style="round").difference(g)
+    edge = lambda g: g.buffer(FRAME_RIM + FRAME_OUTLINE, join_style="round").difference(g.buffer(FRAME_RIM, join_style="round"))
+    _, py0, _, py1 = pi.bounds
+    px0, px1 = pi.bounds[0], pi.bounds[2]
+    outline = unary_union([edge(ti), edge(pi)])
+    # the two rims overlap where the boxes meet; a closing fills the wedges between them with a fillet
+    rims = unary_union([rim(ti), rim(pi)]).buffer(0.45).buffer(-0.45).difference(unary_union([ti, pi]))
+    # the set symbol: black patches well inside the box (strips along its edge are old outline remnants)
+    symbol = unary_union([p for p in vt.polys_of(regions[BLACK].intersection(ti))
+                          if p.area >= FRAME_KEEP_AREA and ti.buffer(-0.3).contains(p)])
+    whole = unary_union([outline, rims, ti, pi])
+    for k in regions:
+        regions[k] = regions[k].difference(whole)
+    outline = outline.difference(rims).difference(unary_union([ti, pi]))  # one box's outline mustn't cross the other
+    regions[BLACK] = unary_union([regions[BLACK], outline, symbol]).intersection(card)
+    regions[TAN] = regions[TAN].union(rims).intersection(card)
+    regions[CREAM] = regions[CREAM].union(unary_union([ti, pi]).difference(symbol)).intersection(card)
+    # art slivers left against the new outline (thinner than a bead) become black
+    band = whole.buffer(1.0).difference(whole)
+    for k in (CREAM, TAN, RED):
+        g = regions[k]
+        thin = g.difference(g.buffer(-ART["stroke"] / 2).buffer(ART["stroke"] / 2)).intersection(band)
+        regions[k] = g.difference(thin)
+        regions[BLACK] = regions[BLACK].union(thin)
+    for k in (TAN, RED):  # hairline slivers left by the booleans go to black
+        tiny = [p for p in vt.polys_of(regions[k]) if p.area < 0.05]
+        if tiny:
+            regions[k] = regions[k].difference(unary_union(tiny))
+            regions[BLACK] = regions[BLACK].union(unary_union(tiny))
+    assert pi.buffer(-0.4).contains(window()), "the window must sit inside the P/T box"
+    assert ti.bounds[1] - py1 >= 0, "P/T box overlaps the type line box"
 
 
 def front_regions(card):
@@ -378,10 +568,19 @@ def front_regions(card):
         regions[k] = g
         taken = unary_union([taken, g])
     regions[BLACK] = card.difference(taken).buffer(0)
+    vector_boxes(regions, card)
     text = type_line()
     for k in (CREAM, TAN, RED):
         regions[k] = regions[k].difference(text)
     regions[BLACK] = regions[BLACK].union(text).intersection(card)
+    name = title()
+    # the bar's interior is all black now (draw_frames cleared the old letters): the new title must
+    # sit inside it with a margin
+    spill = name.buffer(0.4).difference(regions[BLACK]).area
+    assert spill < 0.05, f"title text runs out of the title bar ({spill:.2f} mm^2)"
+    for k in (BLACK, TAN, RED):
+        regions[k] = regions[k].difference(name)
+    regions[CREAM] = regions[CREAM].union(name).intersection(card)
     # black = card minus the rest also collects hairline seams between the other colours; drop them
     regions[BLACK] = unary_union([p for p in vt.polys_of(regions[BLACK]) if p.area >= 0.02])
     return regions
@@ -526,7 +725,7 @@ def main():
             print(f"  {fn.name:22s} z {z0:.1f}-{z1:.1f}  {g.area * (z1 - z0) / 1000:.2f} cm^3")
     (PARTS / "slice_args.txt").write_text(
         " ".join(files) + f" --assemble --extruders {','.join(map(str, slots))} "
-        f"--colors \"{','.join(h for _, h in vt.PALETTE)}\" --set wall_generator=arachne\n")
+        f"--colors \"{','.join(h for _, h in vt.PALETTE)}\" " + " ".join("--set " + x for x in SLICER_SET) + "\n")
     print("model grams per slot (PLA 1.24 g/cm^3, solid, before purge): " +
           ", ".join(f"{i + 1} {vt.PALETTE[i][0]} {g:.2f}" for i, g in enumerate(grams)))
     preview(regions, card, wh, OUT / "dial_preview.png")
