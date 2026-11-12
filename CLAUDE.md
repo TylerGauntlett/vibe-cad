@@ -137,6 +137,19 @@ models/<slug>/
   over 4 regions that tile the card) with outlines ≥ 0.7 mm, and absorb any island < 1 mm² into its neighbour.
 - Dial digits: to hide both neighbours, a value W mm wide on a 9-position ring needs a ring radius of about 1.75·W.
   8 mm condensed "N/N" (12 mm wide) → r 21 → a Ø59 wheel, the most a 63 mm card can hold. Scale the slash to the digit height.
+- Woodcut/engraved style (see models/vampire-arcana): black line art on white plus ONE accent reads far clearer than flat
+  4-colour fills. On a 0.4 nozzle, strokes of 0.55 at 1.25 pitch, outlines 0.7. Print it **face-down as a 0.4 mm flat inlay**:
+  every swap is in layers 1–2 (4 colours → 6 swaps), however much ink the art has.
+- Hatching against outlines leaves sub-bead white slivers. Clear a ~0.7 mm white halo around shapes drawn over line fields,
+  snap shapes to the line grid, then merge what's left into its neighbour. After many painter's-algorithm booleans, snap
+  the final regions (`set_precision` 0.5 µm, then grid 0), or later booleans and `vt.extrude` throw TopologyExceptions.
+
+## Face-down / multi-part print transforms
+- Mirror only parts that print **face-down** (front, wheel). A part printed on its back with the working side up
+  (the counter's back: cavity up) is already in the front-view frame, so mirror only its back-face art. A mirrored
+  back with symmetric pegs still assembles, but the wheel moves to the other side and the window lands off-detent.
+- Design-frame asserts can't see a wrong print transform. Re-assemble the parts **as written** (flip, seat on the
+  printed pin) and check the result (models/vampire-counter `assembly_check()`).
 
 ## Printing design rules of thumb
 - Design parts to print flat on their largest flat face, with no supports. Keep overhangs at or under 45°.
@@ -157,4 +170,5 @@ depth-sorting artifacts, not holes. Trust `open_edges`. View the PNG with the Re
 | Wave jewelry-box insert (11.4×4.9×1", 5 waves + end ramps, 2 dovetailed halves) | `models/wave-insert/` | v4 sliced for A1 (1 plate) |
 | Vampire token card, 4-colour AMS (63×88 mm; flat-light + relief layouts) | `models/vampire-token/` | v2 sliced for A1 |
 | Vampire token with internal 1/1–9/9 dial wheel + detent (63×92×4.8 mm, 3 parts, 4-colour relief) | `models/vampire-dial/` | v1 sliced for A1 |
-| Vampire counter: legible redesign, vector vampire-knight scene, 8 mm 1/1–9/9 dial (63×88×4.8 mm, 3 parts) | `models/vampire-counter/` | v1.2 sliced for A1 |
+| Vampire counter: flat-colour alt art of vampire-arcana (same frame, title, dial, back); hosts the shared frame + mechanism | `models/vampire-counter/` | v2 sliced for A1 |
+| Vampire arcana: woodcut-tarot restyle of the counter (ink on white, gold moon, blood accents), face-down flat inlay; imports the counter's frame | `models/vampire-arcana/` | v1 sliced for A1 |
