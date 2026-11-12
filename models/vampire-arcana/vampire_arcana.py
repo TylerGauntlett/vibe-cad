@@ -189,25 +189,56 @@ def tower(cv, clip, x0, x1, top, spire, windows=()):
 
 # ---- the knight ---------------------------------------------------------------------
 
+# The knight is split into parts (cloak, armour, head, sword) so models/vampire-cathedral can recombine
+# them with vampire-counter's treatments. `knight()` paints them in the original order (output unchanged).
+# Each part works in the knight's local frame (face centre at HEAD, 1 unit = 1 mm).
+
+def S(g):
+    return sym(g, 0)
+
+
+def _ink(cv, clip, g, colour=INK):
+    cv.paint(colour, at(g), clip)
+
+
+def _line(cv, clip, pts, w0=LINE, w1=None, colour=INK):
+    _ink(cv, clip, S(taper(pts, w0, w1 or w0)), colour)
+
+
+CLOAK_PTS = [(0, -7.0), (-10.0, -8.6), (-18.5, -12.2), (-24.5, -18.5), (-27.5, -26.0), (-29.5, -36.0), (0, -36.0)]
+CLOAK_FOLDS = ([(-21.8, -19.6), (-23.6, -25.0), (-24.6, -33.0)], [(-18.6, -21.5), (-19.6, -27.0), (-20.2, -33.0)],
+               [(-25.4, -23.5), (-27.0, -29.5), (-27.9, -35.0)])
+
+
+def cloak_shape():
+    return spline(sym_pts(CLOAK_PTS), n=400)
+
+
+def knight_cloak(cv, clip):
+    """A solid black mass flaring to the frame's bottom corners, with white fold lines."""
+    _ink(cv, clip, cloak_shape())
+    for f in CLOAK_FOLDS:
+        _line(cv, clip, f, 0.5, 0.9, PAPER)
+
+
 def knight(cv, clip):
     """The vampire-counter knight's silhouette, re-inked: outlines, hatched armour, a black cloak with
     white folds, white hair with black strands, gold hilt and blood running down the blade."""
-    S = lambda g: sym(g, 0)
-    A = lambda g: at(g)
+    knight_cloak(cv, clip)
+    knight_armour(cv, clip)
+    knight_head(cv, clip)
+    knight_sword(cv, clip)
+
+
+def knight_armour(cv, clip):
+    """Breastplate and lamed pauldrons, outlined white steel with engraved shading."""
+    A = at
 
     def ink(g, colour=INK):
-        cv.paint(colour, A(g), clip)
+        _ink(cv, clip, g, colour)
 
     def line(pts, w0=LINE, w1=None, colour=INK):
-        ink(S(taper(pts, w0, w1 or w0)), colour)
-
-    # cloak: a solid black mass flaring to the frame's bottom corners, with white fold lines
-    cloak = spline(sym_pts([(0, -7.0), (-10.0, -8.6), (-18.5, -12.2), (-24.5, -18.5), (-27.5, -26.0),
-                            (-29.5, -36.0), (0, -36.0)]), n=400)
-    ink(cloak)
-    for f in ([(-21.8, -19.6), (-23.6, -25.0), (-24.6, -33.0)], [(-18.6, -21.5), (-19.6, -27.0), (-20.2, -33.0)],
-              [(-25.4, -23.5), (-27.0, -29.5), (-27.9, -35.0)]):
-        line(f, 0.5, 0.9, PAPER)
+        _line(cv, clip, pts, w0, w1, colour)
 
     # breastplate: outlined, shaded down both flanks, fauld lames across the bottom
     chest = spline(sym_pts([(0, -11.5), (-7.8, -12.2), (-10.4, -17.0), (-11.6, -25.0), (-12.0, -36.0), (0, -36.0)]))
@@ -229,6 +260,17 @@ def knight(cv, clip):
             shade = inside(lame).intersection(box(-30, -30, -11.0, 0))
             ink(S(hatch(shade, 58, phase=0.5 * i, min_len=1.6)))
         ink(S(disk((-8.0 + dx, -12.0 + dy), 0.6, 12)))             # rivet
+
+
+def knight_head(cv, clip):
+    """Long white hair with black strands, gorget, the gaunt stern face, moustache and pointed beard."""
+    A = at
+
+    def ink(g, colour=INK):
+        _ink(cv, clip, g, colour)
+
+    def line(pts, w0=LINE, w1=None, colour=INK):
+        _line(cv, clip, pts, w0, w1, colour)
 
     # long white hair, outlined, with flowing black strands
     hair = spline(sym_pts([(0, 10.9), (-4.7, 10.2), (-7.9, 7.4), (-9.3, 2.4), (-9.8, -3.2), (-10.8, -8.4),
@@ -263,6 +305,15 @@ def knight(cv, clip):
                               (-1.2, -6.3), (0, -6.3)])).buffer(0.2).buffer(-0.2)
     outlined(cv, PAPER, A(stache), clip, w=0.55)
 
+
+def knight_sword(cv, clip, grip=None):
+    """The sword, planted point-down: blood runs from the guard down the fuller and drips off it.
+    `grip(cv, clip)` may replace the default leather-wrapped grip (vampire-cathedral uses the counter's)."""
+    A = at
+
+    def ink(g, colour=INK):
+        _ink(cv, clip, g, colour)
+
     # the sword, planted point-down: blood runs from the guard down the fuller and drips off it
     blade = box(-1.9, -40, 1.9, -26.0)
     outlined(cv, PAPER, A(blade), clip)
@@ -275,10 +326,13 @@ def knight(cv, clip):
                                                    (c[0], c[1] + 1.6 * r + 0.3)])]), BLOOD)
     guard = unary_union([box(-6.5, -26.4, 6.5, -24.6), S(taper([(-6.0, -25.5), (-8.2, -25.9), (-9.0, -27.6)], 1.8, 1.0))])
     outlined(cv, GOLD, A(guard), clip, w=0.65)
-    grip = box(-1.4, -24.6, 1.4, -19.2)
-    ink(grip.buffer(0.3))
-    for y in (-20.6, -22.4):                                              # leather wrap, white diagonals
-        ink(taper([(-1.2, y - 0.5), (1.2, y + 0.5)], 0.5, 0.5).intersection(grip.buffer(-0.05)), PAPER)
+    if grip is not None:
+        grip(cv, clip)
+    else:
+        g = box(-1.4, -24.6, 1.4, -19.2)
+        ink(g.buffer(0.3))
+        for y in (-20.6, -22.4):                                          # leather wrap, white diagonals
+            ink(taper([(-1.2, y - 0.5), (1.2, y + 0.5)], 0.5, 0.5).intersection(g.buffer(-0.05)), PAPER)
     outlined(cv, GOLD, A(disk((0, -17.4), 2.2, 32)), clip, w=0.65)
     ink(disk((0, -17.4), 1.15, 24), BLOOD)
 

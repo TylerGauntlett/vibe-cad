@@ -20,14 +20,14 @@ What the reference does (13 gallery photos and the description, 2026-11-12):
 | Layout | black card edge 1.8 mm, black rules 1.2 mm; white plates: title 12.4 mm, art 53.4 mm, footer 16.2 mm |
 | Title | "VAMPIRE", **Georgia Regular, 6.0 mm caps**, black on white, 45.9 mm long in a 59.4 mm plate |
 | Art | original woodcut of the vampire-counter knight: white hair with black strands, a gaunt face with red eyes, outlined armour with engraved shadow hatching, a black cloak with white folds, and a sword with blood running down the fuller. Behind him: a gold moon with 28 rays, an engraved sky, scalloped clouds, bats and castle towers |
-| Dial | the vampire-counter v1.2 wheel and detent, unchanged: 1/1 … 9/9, 8 mm digits, window in a ruled box in the footer, a bat either side |
+| Dial | the shared vampire-counter dial: 1/1 … 9/9 in 7.5 mm digits, a bevelled window standing on the card's bottom edge with a bat either side, and the wheel's thumb rim poking 2 mm out of the **bottom edge** (push it right to count up). See `models/vampire-counter/README.md` |
 | Colours | 1 ink `#1E1A18`, 2 blood `#9B1B1E`, 3 gold `#B87333` (copper/gold silk), 4 paper `#F4F1EA` (white) |
 | Inlay | **face-down**, 0.4 mm (2 layers) of colour; everything above is paper |
 | Line rules | outlines 0.7, strands and hatching 0.55 at 1.25 pitch (every white gap ≥ 0.7), islands ≥ 1 mm² |
 | Back | black edge plus a gold crescent and bat, inlaid in the same 2 layers (no extra swaps) |
 | Material / printer | Bambu PLA Basic, A1 0.4 mm, 0.20 mm Standard + Arachne (vampire-counter `SLICER_SET`), first layer 30 mm/s walls and 60 mm/s infill, Textured PEI (65 °C) |
-| Plate | 1: front, back and wheel side by side (one object, 17 parts) |
-| Print | **1 h 06 min, 28.6 g, 6 filament swaps (~2.2 g purge)**, no slicer warnings |
+| Plate | 1: front, back and wheel side by side (one object, 21 parts) |
+| Print | **1 h 07 min, 28.6 g, 6 filament swaps (~2.2 g purge)**, no slicer warnings. v2 is not printed yet |
 
 ## Decisions & interpretations
 - **Scene: the vampire-counter knight, re-inked** (the scene question went unanswered, so this is the default). It is
@@ -73,8 +73,9 @@ What the reference does (13 gallery photos and the description, 2026-11-12):
 
 ## Files (`out/`)
 - `vampire_arcana_A1.3mf`: the sliced A1 project, 4 AMS slots.
-- `parts/`: 17 colour-part STLs (`<front|back|wheel>_<n>_<colour>.stl`, mm, mirrored and laid out as printed)
-  plus `slice_args.txt`.
+- `parts/`: 21 STLs, one per colour and height band (`<front|back|wheel>_<n>_<colour>.stl`, mm, mirrored and laid
+  out as printed) plus `slice_args.txt`.
+- `section_preview.png`: side section through the window and axle, from the printed parts re-assembled.
 - `arcana_preview.png`: the face at 1/1, 5/5 and 9/9, a nozzle simulation, and the back.
 - `arcana_detail.png`: the head, hilt and blade at print scale, plain and nozzle-simulated.
 - No STEP: the parts are shapely polygons extruded into meshes, as in vampire-counter.
@@ -98,3 +99,10 @@ scene; vampire-counter is the same card with flat-colour alt art.
   so the wheel sat on the wrong side and the value stopped ~0.6 of a step off the window at every detent. Only the
   back art is mirrored now, checked by `assembly_check()` on the parts as printed. 1 h 06 min, 28.6 g, 6 swaps.
   **Reprint the back** (front and wheel are unchanged).
+- 2026-11-12: `knight()` split into `knight_cloak()`, `knight_armour()`, `knight_head()` and `knight_sword(grip=...)`
+  so models/vampire-cathedral can recombine them with vampire-counter's cloak and grip. Output byte-identical (17 STLs).
+- 2026-11-12: v2, vampire-counter v3's dial (shared code, no change to this file's scene): the wheel is centred and
+  its thumb rim pokes out of the **bottom edge** (push right to count up); the window is on the centre line,
+  bevelled, and stands on the bottom edge; 7.5 mm digits; reeded rim. 1 h 07 min, 28.6 g, 6 swaps, no warnings;
+  21 meshes open_edges=0; the as-printed check (now with collisions) passes. Not printed yet. **Reprint all three
+  parts**: v1 parts don't mix with v2.

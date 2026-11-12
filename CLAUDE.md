@@ -137,6 +137,7 @@ models/<slug>/
   over 4 regions that tile the card) with outlines ≥ 0.7 mm, and absorb any island < 1 mm² into its neighbour.
 - Dial digits: to hide both neighbours, a value W mm wide on a 9-position ring needs a ring radius of about 1.75·W.
   8 mm condensed "N/N" (12 mm wide) → r 21 → a Ø59 wheel, the most a 63 mm card can hold. Scale the slash to the digit height.
+  That leaves no room past the digits: for a bottom-edge thumb rim plus a bevelled window the cards use 7.5 mm digits (r 19.75).
 - Woodcut/engraved style (see models/vampire-arcana): black line art on white plus ONE accent reads far clearer than flat
   4-colour fills. On a 0.4 nozzle, strokes of 0.55 at 1.25 pitch, outlines 0.7. Print it **face-down as a 0.4 mm flat inlay**:
   every swap is in layers 1–2 (4 colours → 6 swaps), however much ink the art has.
@@ -150,6 +151,23 @@ models/<slug>/
   back with symmetric pegs still assembles, but the wheel moves to the other side and the window lands off-detent.
 - Design-frame asserts can't see a wrong print transform. Re-assemble the parts **as written** (flip, seat on the
   printed pin) and check the result (models/vampire-counter `assembly_check()`).
+
+## Layered (shapely-extruded) parts (see models/token-dock)
+- Keep one STL per z band. `check_mesh.py` welds vertices, so stacked prisms in one file share edges four ways and
+  read as open edges.
+- A 45° face is a stack of one-layer prisms, each stepped 0.2 mm: the print is identical to a true bevel. Use it
+  for a lap joint between two face-down parts (both print without support) and to bevel a deep window.
+- A window deeper than ~2 mm hides the digits' bottoms when read at 45°. Bevel it out toward the face and keep
+  under 1 mm of straight wall above the digits.
+- Check a multi-part stack by rebuilding it from the printed bands and intersecting every pair of parts in every
+  shared z range (`assembly_check()`), plus a side-section plot.
+- Showing 1 of N values by sliding needs (2N−1) pitches of run; by a rack on a printable pinion (r ≥ ~4 mm) about
+  45 mm for 9 steps. At card size, only a wheel shows 7.5–8 mm digits.
+- A 9-value "N/N" ring needs r ≈ 2.63 × digit height (8 mm → 21, 7.5 mm → 19.75) with the window straight below the axle.
+- Thumb rim through an edge: the rim must clear the window by bevel + a 3-bead frame strip + the protrusion, so the
+  window sits ~8 mm in from that edge. With 9 notches, put the detent 160° from the exposed spot so a notch rests there.
+- The dial (wheel, detent, window, checks) lives in `models/vampire-counter/vampire_counter.py`. arcana, cathedral and
+  token-dock all import it, so after a change rebuild all four and compare STL hashes for the ones meant to stay put.
 
 ## Printing design rules of thumb
 - Design parts to print flat on their largest flat face, with no supports. Keep overhangs at or under 45°.
@@ -170,5 +188,7 @@ depth-sorting artifacts, not holes. Trust `open_edges`. View the PNG with the Re
 | Wave jewelry-box insert (11.4×4.9×1", 5 waves + end ramps, 2 dovetailed halves) | `models/wave-insert/` | v4 sliced for A1 (1 plate) |
 | Vampire token card, 4-colour AMS (63×88 mm; flat-light + relief layouts) | `models/vampire-token/` | v2 sliced for A1 |
 | Vampire token with internal 1/1–9/9 dial wheel + detent (63×92×4.8 mm, 3 parts, 4-colour relief) | `models/vampire-dial/` | v1 sliced for A1 |
-| Vampire counter: flat-colour alt art of vampire-arcana (same frame, title, dial, back); hosts the shared frame + mechanism | `models/vampire-counter/` | v2 sliced for A1 |
-| Vampire arcana: woodcut-tarot restyle of the counter (ink on white, gold moon, blood accents), face-down flat inlay; imports the counter's frame | `models/vampire-arcana/` | v1 sliced for A1 |
+| Vampire counter: flat-colour alt art of vampire-arcana (same frame, title, dial, back); hosts the shared frame + dial (centred wheel, thumb rim at the bottom edge, bevelled window, 7.5 mm digits) | `models/vampire-counter/` | v3 sliced for A1, not printed |
+| Vampire arcana: woodcut-tarot restyle of the counter (ink on white, gold moon, blood accents), face-down flat inlay; imports the counter's frame + dial | `models/vampire-arcana/` | v2 sliced for A1, not printed |
+| Vampire cathedral: rule-based blend of the two (flat colour for cloth/glass/gold, woodcut for skin/hair/steel/stone): counter's red cloak, arcana's armour, merged sword, spiked crown, red-lined collar, engraved nave, gold rose window; imports arcana's knight parts + counter | `models/vampire-cathedral/` | v3 sliced for A1, not printed |
+| Token dock: reusable 1/1–9/9 counter base (bottom-edge thumbwheel, bevelled window, 63×69.4×6 mm, same width as the card) + swappable flat 63×88 token cards (cleat toe, 2 magnet bosses, Ø6×2 magnets); imports arcana's scene + counter's dial (same wheel as the one-piece cards) | `models/token-dock/` | v1.2 sliced for A1 (base plate + arcana card plate), not printed |

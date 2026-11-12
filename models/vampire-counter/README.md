@@ -13,6 +13,11 @@ keep decisions like typography and borders, then port those learnings back into 
 it functions as an alt artwork primarily." So this card is now the **flat-colour alt art of vampire-arcana**: the
 same frame, type, dial footer, print method and back, with only the art plate differing.
 
+v3: after models/token-dock (a detachable counter base), asked how its learnings could be ported back to the
+one-piece cards, then: "make these changes. note that the intent is to have these as an all in one alternative to
+the complex base system" and "redesign the wheel system to also be turnable from the bottom similar to the complex
+base".
+
 ## Spec (as built)
 | Parameter | Value |
 |---|---|
@@ -20,37 +25,63 @@ same frame, type, dial footer, print method and back, with only the art plate di
 | Frame (shared with arcana) | black card edge 1.8 mm, black rules 1.2 mm; white plates: title 12.4 mm, art 53.4 mm, footer 16.2 mm |
 | Title (shared) | "VAMPIRE", **Georgia Regular, 6.0 mm caps**, black on the white title plate, 45.9 mm long in a 59.4 mm plate |
 | Dial | one wheel, 9 positions × 40°: **1/1 … 9/9**, click detent at each value |
-| Digits | Bahnschrift Bold Condensed, **8.0 mm** tall, slash cut to digit height, black inlaid flat in the white wheel |
-| Window (shared) | 13.7 × 9.3 mm at (32.4, 10.2), in a ruled box (0.7 white mat + 0.7 black rule) in the footer, a bat either side |
-| Wheel | Ø 58.9 mm, digit ring r 21, 9 **V notches** (1.3 deep, 35° flanks, 0.6 mm rounded edges); the rim pokes **2.5 mm** out of the right edge |
-| Detent | 26 mm cantilever tapered 1.4 → 2.2 mm, R 3 root fillet, Ø2 nub on both notch flanks with 0.4 mm preload. Holds **0.40 N** seated and 1.47 N over the rim at **0.52 %** peak strain; the pocket wall stops it at 0.73 % |
-| Turning | push the rim **up** to count up |
+| Digits | Bahnschrift Bold Condensed, **7.5 mm** tall (8.0 in v2), slash cut to digit height, black inlaid flat in the white wheel |
+| Window (shared) | 13.0 × 8.8 mm on the card's centre line at (31.5, 7.75), **bevelled** out to 15.0 × 10.8 mm at the face (45°, one layer per step, 0.8 mm straight above the wheel). A 0.7 mm black rule round the mouth runs into the card's bottom edge; a bat either side |
+| Wheel | Ø 59.0 mm, centred in the card (1.6 mm side walls), digit ring r 19.75, 9 **V notches** (1.3 deep, 35° flanks, 0.6 mm rounded edges), reeded rim between them (0.7 mm slits every 4°). The rim pokes **2.0 mm** out of the **bottom edge** over 21.4 mm. The same part as the token-dock's wheel |
+| Detent | at 110° (upper left), running up to the right: 26 mm cantilever tapered 1.4 → 2.2 mm, R 3 root fillet, Ø2 nub on both notch flanks with 0.4 mm preload. Holds **0.40 N** seated and 1.47 N over the rim at **0.52 %** peak strain; the pocket wall stops it at 0.73 % |
+| Turning | push the rim **right** to count up |
 | Art (this card's own) | flat-colour vector scene: an elder vampire knight (long white hair, pointed beard, layered pauldrons with copper edges, gorget, red cloak, sword planted point-down) before a **blood moon**, with copper cloud streaks, bats and a black castle with red lancet windows |
 | Colours (shared) | 1 ink `#1E1A18`, 2 blood `#9B1B1E`, 3 gold `#B87333` (copper), 4 paper `#F4F1EA` (white): the same spools as v1 |
 | Inlay (shared) | **face-down**, 0.4 mm (2 layers) of colour on front, back and wheel; everything above is white |
 | Back (shared) | black edge plus a gold crescent and bat, inlaid in the same 2 layers |
 | Material / printer | Bambu PLA Basic, A1 0.4 mm, 0.20 mm Standard + Arachne, first layer 30 mm/s walls and 60 mm/s infill, Textured PEI (65 °C) |
-| Plate | 1: front, back and wheel side by side (one object, 17 colour parts) |
-| Print | **1 h 04 min, 29.1 g, 7 filament swaps (~2.6 g purge)**, no slicer warnings |
-| Model grams per slot | ink 1.45, blood 0.27, gold 0.28, paper 28.96 (solid volume; 15 % infill makes the real total lower) |
+| Plate | 1: front, back and wheel side by side (one object, 21 parts) |
+| Print | **1 h 05 min, 29.0 g, 7 filament swaps (~2.6 g purge)**, no slicer warnings. v3 is not printed yet |
+| Model grams per slot | ink 1.43, blood 0.27, gold 0.28, paper 28.86 (solid volume; 15 % infill makes the real total lower) |
 
 ### Mechanism
 Same sandwich as `models/vampire-dial`, scaled up:
 - **Back**: 0.6 mm plate + 2.2 mm spacer with the wheel cavity (0.4 mm radial clearance), a Ø6 axle pin, 6 Ø2
-  alignment pegs, and the detent arm on top of the wheel, running left. The arm stands free over a slot through the
+  alignment pegs, and the detent arm above the wheel, running up to the right. The arm stands free over a slot through the
   plate. The pocket around it doubles as an over-travel stop.
-- **Wheel**: a flat 1.8 mm white disc with the digits inlaid black in its face (printed face-down).
-- **Front**: printed face-down: the 0.4 mm colour inlay, white above it, the window cut through, sockets underneath.
+- **Wheel**: a flat 1.8 mm white disc with the digits inlaid black in its face (printed face-down). Its rim leaves
+  the cavity through the card's bottom edge.
+- **Front**: printed face-down: the 0.4 mm colour inlay, white above it, the window bevelled through, sockets underneath.
 
 ### Assembly
 1. Peel the three parts off the plate. The front and wheel come off face-down; turn them over. Clean any elephant
    foot off the wheel's hole and rim.
-2. Hold the wheel digits up with "1/1" at the bottom, so a notch sits at the top under the nub. Lower it onto
+2. Hold the wheel digits up with "1/1" at the bottom, so a notch sits under the nub (upper left). Lower it onto
    the pin. If the nub catches, lift the arm's tip outward by about 0.5 mm; the pocket wall stops it before it over-bends.
 3. Check the wheel clicks through all 9 values, then return it to 1/1.
 4. Lay the front on so the pegs and pin enter its sockets. Put a drop of **CA on the 6 pegs only**, then press flat.
 
 ## Decisions & interpretations
+### v3: the dock's dial (thumb rim at the bottom edge)
+The one-piece cards are the all-in-one alternative to models/token-dock, so they take its dial whole. It lives in
+this file, and vampire-arcana, vampire-cathedral and token-dock all build from it.
+- **Rim at the bottom edge, wheel centred.** The value now sits on the card's centre line (v2: wheel offset to the
+  right, rim at the right edge, window at −100°). This supersedes "Window a little left of straight down" below.
+- **7.5 mm digits** (v2: 8.0). The wheel is as large as 1.6 mm side walls allow (Ø59). The rim must clear the window
+  by the bevel (1.0), a frame strip (3 beads) and the protrusion (2.0). 8 mm digits need a ring of r 21, which
+  leaves 2.5 mm for bevel + protrusion; 7.5 mm digits need r 19.75 (searched) and leave 4.0 mm. The alternative
+  was 8 mm digits with a 1.5 mm protrusion. 7.5 mm also makes the wheel the same part as the dock's.
+- **Bevelled window.** The straight 2 mm window of v2 hid about 1.8 mm of the digits' bottoms at 45° (card lying
+  flat, wheel resting 0.4 mm below the front). The bevel cuts that to about 0.8 mm. The bevel's white wall
+  replaces the old 0.7 mm white mat.
+- **The window stands on the bottom edge.** It is 21.75 mm below the axle, so its ruled box (1.66–13.84 mm up the
+  card) meets the black card edge, and 4.2 mm of the footer plate is left white above it. The bats sit level with
+  the box.
+- **Detent at 110°.** With 9 notches a notch rests at the bottom of the rim, under the thumb, only if the detent
+  is 160° from it. Same arm, same forces and strain as v1.2 (the numbers don't depend on where it sits).
+- **Reeded rim.** Only 2 mm of rim shows, and at rest one notch. The slits are too narrow for the Ø2 nub to drop
+  into (0.06 mm), so they are not detents. `GRIP_W = 0` leaves the rim smooth. Not print-tested.
+- **Checks.** `assembly_check()` now also intersects every pair of the printed parts in every shared height range
+  (a peg without a socket, or a wrongly mirrored part, shows up as a collision) and asserts a notch rests at the
+  bottom of the rim. `section_preview.png` is a side section of the re-assembled printed parts.
+- All three parts changed: **reprint the front, back and wheel**. v2 parts don't mix with v3.
+- Every printed height is still a multiple of the 0.2 mm layer.
+
 ### v2: alt art of vampire-arcana
 - **One frame, two arts.** Everything the cards share lives in `vampire_counter.py`: palette, plates and rules,
   Georgia title, ruled window box with footer bats, back, mechanism, face-down build, sliver/island clean-up and
@@ -126,10 +157,11 @@ Same sandwich as `models/vampire-dial`, scaled up:
 ## Files (`out/`)
 - `vampire_counter_A1.3mf`: the sliced A1 project, 4 AMS slots. Open it in Bambu Studio, map slots 1–4 to black,
   red, copper and white, and print from there.
-- `parts/`: the 17 colour-part STLs (`<front|back|wheel>_<n>_<colour>.stl`, mm, mirrored and laid out as printed)
-  plus `slice_args.txt`.
+- `parts/`: the 21 STLs, one per colour and height band (`<front|back|wheel>_<n>_<colour>.stl`, mm, mirrored and
+  laid out as printed) plus `slice_args.txt`.
 - `counter_preview.png`: the face at 1/1, 5/5 and 9/9, a nozzle simulation, and the back.
 - `parts_preview.png`: the back (spacer, detent, pin, pegs) and the wheel.
+- `section_preview.png`: side section through the window and axle, from the printed parts re-assembled.
 - No STEP: the parts are shapely polygons extruded into meshes (as in vampire-dial).
 
 ## Printing
@@ -144,7 +176,8 @@ cd models\vampire-counter\out\parts
 python ..\..\..\..\tools\slice_bambu.py <contents of slice_args.txt> -o ..\vampire_counter_A1.3mf
 ```
 Uses helpers from `models/vampire-token` (extrusion) and `models/vampire-dial` (glyphs, text layout, drawing).
-**`models/vampire-arcana` imports this file**, so rebuild arcana too after changing anything shared.
+**`models/vampire-arcana` imports this file, and `models/vampire-cathedral` and `models/token-dock` use it through
+arcana**, so rebuild all three after changing anything shared.
 
 ## History
 - 2026-11-12: v1, redesign of vampire-dial for legibility: vector scene, 6.8 mm title, 8 mm N/N dial. Caricature vampire.
@@ -161,3 +194,7 @@ Uses helpers from `models/vampire-token` (extrusion) and `models/vampire-dial` (
   of −100° (0.6 of a 40° step). Only the back art is mirrored now, and a new `assembly_check()` rebuilds the parts
   as printed (flipped, wheel on the printed pin) and asserts every value is centred with the nub seated.
   1 h 04 min, 29.0 g, 7 swaps. **Reprint the back** (front and wheel are unchanged).
+- 2026-11-12: v3, the token-dock's dial ported back: wheel centred with its thumb rim at the bottom edge (push right
+  to count up), window on the centre line and bevelled, 7.5 mm digits, detent at 110°, reeded rim; the as-printed
+  check now tests every pair of parts for collisions. Shared with arcana, cathedral and the dock (whose 38 STLs are
+  byte-identical after the move). 1 h 05 min, 29.0 g, 7 swaps, no warnings. Not printed yet; reprint all three parts.
