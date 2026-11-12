@@ -13,7 +13,7 @@ requirements.txt        pinned Python deps for .venv
 tools/
   new_model.py          scaffold models/<slug>/ from templates/
   check_mesh.py         watertight / volume / size / bed-fit check + preview PNG
-  slice_bambu.py        STL(s) -> sliced A1 .3mf via the installed Bambu Studio
+  slice_bambu.py        STL(s) -> sliced A1 .3mf via the installed Bambu Studio (incl. multi-colour AMS)
 templates/              model_template.py + model_README.md used by new_model.py
 models/<slug>/
   <module>.py           the parametric model (parameters at the top)
@@ -82,6 +82,43 @@ models/<slug>/
 - The CLI writes `plate_N.gcode` and `result.json` next to the 3MF. The script slices in a temp dir.
 - `printer_model_id` comes out blank, so tell the user to **open the 3MF in Bambu Studio and print from there** rather than sending it straight to the printer.
 - The `bed_temperature_too_high_than_filament` warning is an enclosure advisory. It's harmless on the open-frame A1.
+- **Multi-colour (AMS)**: `slice_bambu.py a.stl b.stl ... --assemble --extruders 1,2,... --colors "#..,#.."`.
+  A hand-written input 3MF crashes the CLI (access violation), even with p:UUIDs. So the script
+  has the CLI `--assemble` the STLs (export only), patches each `<part>`'s `extruder` in
+  `model_settings.config`, then slices that. The object-level `extruder` must be set too, or it
+  overrides the **first** part's filament.
+- The CLI's default `flush_volumes_matrix` is a flat 280 mm³. `--flush auto` writes a colour-aware estimate.
+- The A1 process has **no prime tower**: every swap purges into the chute. Per-layer swaps = filaments in
+  that layer − 1, because Bambu already groups by filament and chains layers. Dark→light purges cost ~3× light→dark.
+- Slicer warnings such as "floating regions" appear only in the CLI's `result.json` (`warning_message`).
+  `slice_bambu.py` prints them as `WARNING`. Check for that line, because the 3MF doesn't carry them.
+- The CLI writes `enable_prime_tower = 0` for these A1 multi-colour jobs even though the preset (and `--set`) says 1.
+  Tell the user to switch it on in the GUI if wanted.
+- Stacked colour reliefs: strokes under ~0.2 mm trigger "floating regions" (Bambu skips them in some
+  layers). Drop them (the opening disk ≥ 0.25 mm) for multi-layer columns.
+- `slice_info.config` `<filament>` entries and the gcode's `total filament weight` list can drop a slot
+  and shift the rest. Count swaps from `M620 S<n>A` lines (the initial load isn't in the gcode).
+
+## Image → multi-colour mesh (see models/vampire-token)
+- Quantize in Lab, then clean with a gentle majority blur + opening. Too much opening wipes out thin
+  highlights. Use `wall_generator=arachne`, which prints strokes down to ~0.1 mm as a 0.34 mm bead.
+- Trace with `cv2.findContours(RETR_CCOMP)`, grow by half a pixel, and make the colours tile the card exactly by
+  ordered subtraction, with the base colour = card − rest.
+- Triangulate caps with `shapely.constrained_delaunay_triangles` + `trimesh.creation.extrude_triangulation`.
+  trimesh's default earcut mis-triangulates polygons with hundreds of holes, which gives non-manifold walls.
+  Inset each region 2–10 µm to break pinch points, and verify the whole region is manifold.
+- `shapely.set_precision(g, grid)` **attaches** the grid to the geometry, and later buffers run on it: a 2 µm inset
+  on a 1 µm grid deleted thin slanted strokes (the / in 2/2). Reset it with `set_precision(g, 0)` before buffering.
+- Printable art ≠ clean art: in a relief, anything under one bead (~0.45 mm wide) or ~1 mm² prints as broken beads or stray
+  dots. Open every colour to ≥ 0.5 mm and drop islands < 1 mm², but zone it. Faces get milder settings. Thin frame lines
+  get a light clean plus 0.1 mm/side dilation instead, because opening deletes them (models/vampire-dial `ZONES`).
+- Small text (< ~3 mm caps) from raster art is unprintable: re-set it as vector text in a condensed sans with tracking
+  (Bahnschrift SemiBold Condensed via a fontTools instance). Judge fonts by simulating the nozzle: open the glyphs with
+  0.42 mm, close with 0.3 mm. Use the nonzero fill rule for glyphs; even-odd punches holes where variable-font contours overlap.
+- Stack colours in Z "bands" to control swaps: the face-up light→dark relief needs only 3 swaps for 4 colours.
+- Mechanical parts on the same plate (see models/vampire-dial) can add **zero** swaps: give every part the
+  same global Z bands, so each layer is still one filament. Lay several objects out as parts of ONE
+  `--assemble` object; the slicer keeps their relative positions.
 
 ## Printing design rules of thumb
 - Design parts to print flat on their largest flat face, with no supports. Keep overhangs at or under 45°.
@@ -97,3 +134,5 @@ depth-sorting artifacts, not holes. Trust `open_edges`. View the PNG with the Re
 | Model | Folder | Status |
 |---|---|---|
 | Wave jewelry-box insert (12×5.5×1", 2 dovetailed halves) | `models/wave-insert/` | v3 sliced for A1 |
+| Vampire token card, 4-colour AMS (63×88 mm; flat-light + relief layouts) | `models/vampire-token/` | v2 sliced for A1 |
+| Vampire token with internal 1/1–9/9 dial wheel + detent (63×92×4.8 mm, 3 parts, 4-colour relief) | `models/vampire-dial/` | v1 sliced for A1 |
