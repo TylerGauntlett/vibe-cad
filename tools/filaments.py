@@ -8,9 +8,10 @@ Hex values are Bambu Lab's published swatch colours (PLA Matte table, store.bamb
 filament differs a little; Ivory White in particular is a warm off-white, not #FFFFFF.
 """
 
-# name -> (Bambu product line, swatch hex, Bambu Studio filament preset)
-MATTE = "Bambu PLA Matte @BBL A1"
-BASIC = "Bambu PLA Basic @BBL A1"
+# name -> (Bambu product line, swatch hex, Bambu Studio filament preset family; the model appends the
+# printer/nozzle suffix, e.g. "Bambu PLA Matte" -> "Bambu PLA Matte @BBL A1 0.2 nozzle")
+MATTE = "Bambu PLA Matte"
+BASIC = "Bambu PLA Basic"
 FILAMENTS = {
     # the tan/brown set on hand (Bambu Lab PLA Matte)
     "Ivory White":    ("PLA Matte", "#FFFFFF", MATTE),
@@ -49,7 +50,7 @@ def palette(name):
 
 
 def ams(name):
-    """(spools in AMS order, 1-based AMS slot for each art slot, filament preset) with shared spools merged."""
+    """(spools in AMS order, 1-based AMS slot for each art slot, preset family) with shared spools merged."""
     spools, _ = PALETTES[name]
     order = list(dict.fromkeys(spools))
     presets = {FILAMENTS[f][2] for f in order}
