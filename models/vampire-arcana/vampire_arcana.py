@@ -340,8 +340,8 @@ def main():
     back = vc.back_regions(card) if vc.BACK_ART else         {PAPER: card, INK: Polygon(), BLOOD: Polygon(), GOLD: Polygon()}
     vc.report(card, regions, back)
     vc.write_plate(m, regions, back, PARTS)
-    vc.preview(regions, back, m["wh"], OUT / "arcana_preview.png")
-    detail(regions, m["wh"], OUT / "arcana_detail.png")
+    vc.preview(regions, back, m["wh"], OUT / f"arcana_preview{vc.TAG}.png")
+    detail(regions, m["wh"], OUT / f"arcana_detail{vc.TAG}.png")
 
 
 if __name__ == "__main__":

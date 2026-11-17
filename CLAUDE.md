@@ -14,6 +14,8 @@ tools/
   new_model.py          scaffold models/<slug>/ from templates/
   check_mesh.py         watertight / volume / size / bed-fit check + preview PNG
   slice_bambu.py        STL(s) -> sliced A1 .3mf via the installed Bambu Studio (incl. multi-colour AMS)
+  filaments.py          spools on hand (name, hex, Bambu preset) + named card palettes (vampire cards)
+  recolour_preview.py   repaint a card preview into every palette (comparison sheet), no rebuild needed
 templates/              model_template.py + model_README.md used by new_model.py
 models/<slug>/
   <module>.py           the parametric model (parameters at the top)
@@ -53,6 +55,8 @@ models/<slug>/
 - **Bambu Lab A1**: 256 × 256 × 256 mm build volume, 0.4 mm nozzle, open frame (no enclosure).
 - Bed: **Textured PEI Plate** (the A1's stock plate), with PLA at 65 °C.
 - Filament: **Bambu PLA Basic**. Process: **0.20mm Standard @BBL A1** (15% infill, 2 walls).
+- Spools on hand, besides the Basic black/red/copper/white: six **Bambu PLA Matte** tan/brown colours: Ivory White,
+  Desert Tan, Caramel, Terracotta, Dark Chocolate, Charcoal. The names, hex values and palettes are in `tools/filaments.py`.
 - Parts larger than about 250 mm on any axis must be split; a part can also be rotated
   diagonally. Put each oversize half on its own plate (the slicer arranges this automatically).
 

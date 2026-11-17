@@ -25,13 +25,18 @@ Every colour change is in layers 1-2, so the whole plate needs ~6 swaps however 
 
 Run (from the repo root):
     .venv\\Scripts\\python.exe models\\vampire-counter\\vampire_counter.py
+Colours: the previews use the palette named by env VAMPIRE_PALETTE (default "original"; see
+tools/filaments.py). The STLs don't depend on it.
 Outputs (millimetres) go to models\\vampire-counter\\out\\
     parts/<object>_<n>_<colour>.stl   parts laid out as on the plate; load as ONE object (--assemble)
-    parts/slice_args.txt              the matching slice_bambu.py arguments
+    parts/slice_args.txt              the matching slice_bambu.py arguments (original palette)
+    parts/slice_args_<P>.txt          the same for each tools/filaments.py palette P (shared spools merged)
     counter_preview.png               the face at 1/1, 5/5, 9/9, a nozzle simulation, and the back
     parts_preview.png                 back (spacer, detent, pin, pegs) and wheel
 """
 import importlib.util
+import os
+import sys
 import tempfile
 from pathlib import Path
 
@@ -59,8 +64,14 @@ vt = _load("vampire_token", HERE.parent / "vampire-token" / "vampire_token.py")
 vd = _load("vampire_dial", HERE.parent / "vampire-dial" / "vampire_dial.py")
 
 # ---- Parameters (mm) -------------------------------------------------------
-# Palette: AMS slots 1-4, shared with vampire-arcana (the same spools: black, red, copper, white).
-PALETTE = [("ink", "#1E1A18"), ("blood", "#9B1B1E"), ("gold", "#B87333"), ("paper", "#F4F1EA")]
+# Palette: the four art slots (ink, blood, gold, paper), shared with vampire-arcana. The spools behind each
+# palette live in tools/filaments.py; "original" is black, red, copper, white.
+sys.path.insert(0, str(HERE.parents[1] / "tools"))
+import filaments  # noqa: E402
+
+PALETTE_NAME = os.environ.get("VAMPIRE_PALETTE", "original")
+PALETTE = filaments.palette(PALETTE_NAME)
+TAG = "" if PALETTE_NAME == "original" else f"_{PALETTE_NAME}"     # preview file suffix
 INK, BLOOD, GOLD, PAPER = range(4)
 
 CARD_W, CARD_H, CORNER_R = 63.0, 88.0, 3.0
@@ -664,9 +675,15 @@ def write_plate(m, regions, back, parts_dir):
             slots.append(slot + 1)
             grams[slot] += g.area * (z1 - z0) / 1000 * 1.24
             print(f"  {fn.name:22s} z {z0:.1f}-{z1:.1f}  {g.area * (z1 - z0) / 1000:.2f} cm^3")
-    (parts_dir / "slice_args.txt").write_text(
-        " ".join(files) + f" --assemble --extruders {','.join(map(str, slots))} "
-        f"--colors \"{','.join(h for _, h in PALETTE)}\" " + " ".join("--set " + x for x in SLICER_SET) + "\n")
+    for f in parts_dir.glob("slice_args*.txt"):
+        f.unlink()
+    for name in filaments.PALETTES:
+        spools, ams_slot, preset = filaments.ams(name)
+        fil = "" if preset == filaments.BASIC else f'--filament "{preset}" '
+        (parts_dir / ("slice_args.txt" if name == "original" else f"slice_args_{name}.txt")).write_text(
+            " ".join(files) + f" --assemble --extruders {','.join(str(ams_slot[s - 1]) for s in slots)} "
+            f"--colors \"{','.join(filaments.FILAMENTS[f][1] for f in spools)}\" " + fil +
+            " ".join("--set " + x for x in SLICER_SET) + "\n")
     print("model grams per slot (PLA 1.24 g/cm^3, solid, before purge): " +
           ", ".join(f"{i + 1} {PALETTE[i][0]} {g:.2f}" for i, g in enumerate(grams)))
 
@@ -879,7 +896,7 @@ def main():
     back = back_regions(card) if BACK_ART else {PAPER: card, INK: Polygon(), BLOOD: Polygon(), GOLD: Polygon()}
     report(card, regions, back)
     write_plate(m, regions, back, PARTS)
-    preview(regions, back, m["wh"], OUT / "counter_preview.png")
+    preview(regions, back, m["wh"], OUT / f"counter_preview{TAG}.png")
     parts_preview(m, OUT / "parts_preview.png")
 
 

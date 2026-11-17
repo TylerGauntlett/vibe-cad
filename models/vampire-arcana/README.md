@@ -62,6 +62,11 @@ What the reference does (13 gallery photos and the description, 2026-11-12):
   and print from there.
 - If ink strokes come out ragged, slow the first layer further (`initial_layer_speed=20`, the reference's advice).
 
+## Tan/brown palettes
+The same palettes F–I as vampire-counter (see the table in its README; spools in `tools/filaments.py`).
+For this woodcut card, **H** (Charcoal lines on Desert Tan) reads closest to the original, because the art is
+mostly line work. Slice with `parts/slice_args_<P>.txt`. Not sliced yet.
+
 ## Assembly
 1. Peel the parts off. The front and wheel come off face-down; turn them over.
 2. Clean any elephant foot off the wheel's rim and hole.
@@ -74,8 +79,9 @@ What the reference does (13 gallery photos and the description, 2026-11-12):
 ## Files (`out/`)
 - `vampire_arcana_A1.3mf`: the sliced A1 project, 4 AMS slots.
 - `parts/`: 17 colour-part STLs (`<front|back|wheel>_<n>_<colour>.stl`, mm, mirrored and laid out as printed)
-  plus `slice_args.txt`.
+  plus `slice_args.txt` (original palette) and `slice_args_<F|G|H|I>.txt` (tan/brown palettes).
 - `arcana_preview.png`: the face at 1/1, 5/5 and 9/9, a nozzle simulation, and the back.
+- `palettes_preview.png`, `arcana_preview_<F|G|H|I>.png`: the tan/brown palettes, recoloured from the original render.
 - `arcana_detail.png`: the head, hilt and blade at print scale, plain and nozzle-simulated.
 - No STEP: the parts are shapely polygons extruded into meshes, as in vampire-counter.
 
@@ -98,3 +104,5 @@ scene; vampire-counter is the same card with flat-colour alt art.
   so the wheel sat on the wrong side and the value stopped ~0.6 of a step off the window at every detent. Only the
   back art is mirrored now, checked by `assembly_check()` on the parts as printed. 1 h 06 min, 28.6 g, 6 swaps.
   **Reprint the back** (front and wheel are unchanged).
+- 2026-11-17: tan/brown palettes F–I (Bambu PLA Matte): per-palette slice args and recoloured previews.
+  Geometry unchanged. Not sliced yet.
