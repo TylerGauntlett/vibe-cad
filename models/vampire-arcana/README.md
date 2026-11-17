@@ -20,16 +20,19 @@ What the reference does (13 gallery photos and the description, 2026-11-12):
 | Layout | black card edge 1.8 mm, black rules 1.2 mm; white plates: title 12.4 mm, art 53.4 mm, footer 16.2 mm |
 | Title | "VAMPIRE", **Georgia Regular, 6.0 mm caps**, black on white, 45.9 mm long in a 59.4 mm plate |
 | Art | original woodcut of the vampire-counter knight: white hair with black strands, a gaunt face with red eyes, outlined armour with engraved shadow hatching, a black cloak with white folds, and a sword with blood running down the fuller. Behind him: a gold moon with 28 rays, an engraved sky, scalloped clouds, bats and castle towers |
-| Dial | the vampire-counter v1.2 wheel and detent, unchanged: 1/1 … 9/9, 8 mm digits, window in a ruled box in the footer, a bat either side |
+| Dial | the vampire-counter v3 mechanism: 1/1 … 9/9, 8 mm digits, window in a ruled box in the footer, a bat either side; wheel held by friction (no detent), hub 0.4 mm clearance, front joined by a **tongue and groove** round the edge |
 | Colours | 1 ink `#1E1A18`, 2 blood `#9B1B1E`, 3 gold `#B87333` (copper/gold silk), 4 paper `#F4F1EA` (white) |
-| Inlay | **face-down**, 0.4 mm (2 layers) of colour; everything above is paper |
+| Inlay | **face-down**, 0.4 mm (4 layers at 0.10 mm) of colour; everything above is paper |
 | Line rules | outlines 0.7, strands and hatching 0.55 at 1.25 pitch (every white gap ≥ 0.7), islands ≥ 1 mm² |
-| Back | black edge plus a gold crescent and bat, inlaid in the same 2 layers (no extra swaps) |
-| Material / printer | Bambu PLA Basic, A1 0.4 mm, 0.20 mm Standard + Arachne (vampire-counter `SLICER_SET`), first layer 30 mm/s walls and 60 mm/s infill, Textured PEI (65 °C) |
-| Plate | 1: front, back and wheel side by side (one object, 17 parts) |
-| Print | **1 h 06 min, 28.6 g, 6 filament swaps (~2.2 g purge)**, no slicer warnings |
+| Back | black edge plus a gold crescent and bat, inlaid in the same layers (no extra swaps) |
+| Material / printer | Bambu PLA Basic, A1 **0.2 mm nozzle**, 0.10mm Standard @BBL A1 0.2 nozzle + Arachne (vampire-counter `SLICER_SET`), Textured PEI (65 °C) |
+| Plate | 1: front, back and wheel side by side (one object, 16 parts) |
+| Print | **v2 not sliced yet** (built in a cloud session without Bambu Studio; see Rebuild). v1.1 on the 0.4 nozzle: 1 h 06 min, 28.6 g, 6 swaps |
 
 ## Decisions & interpretations
+- **v2 (2026-11-17)**: the shared mechanism changed in vampire-counter v3: the detent is gone, the pegs became a
+  tongue and groove, the hub got 0.4 mm clearance, and the build targets the 0.2 mm nozzle. See
+  `models/vampire-counter/README.md` → "v3". The woodcut art is unchanged (its STLs match v1.1).
 - **Scene: the vampire-counter knight, re-inked** (the scene question went unanswered, so this is the default). It is
   the most direct answer to "how might *this* vampire be transformed". The other options were an enthroned lord
   raising a goblet, or a large bust under the moon.
@@ -58,22 +61,22 @@ What the reference does (13 gallery photos and the description, 2026-11-12):
 ## Printing
 - Use a **clean** Textured PEI plate (wash it with dish soap). The whole face is the first layer, and tiny ink islands
   need to stick.
-- Open `out/vampire_arcana_A1.3mf` in Bambu Studio, map slots 1–4 to black, red, copper (or gold silk) and white,
-  and print from there.
-- If ink strokes come out ragged, slow the first layer further (`initial_layer_speed=20`, the reference's advice).
+- Slice `out/vampire_arcana_A1.3mf` on the Windows PC (see Rebuild), open it in Bambu Studio, map slots 1–4 to black,
+  red, copper (or gold silk) and white, and print from there.
+- The 0.2 nozzle preset already runs the first layer slowly (16 mm/s walls), as the reference advises.
 
 ## Assembly
 1. Peel the parts off. The front and wheel come off face-down; turn them over.
 2. Clean any elephant foot off the wheel's rim and hole.
-3. Fit the wheel onto the back's pin, digits up, with "1/1" at the bottom so a notch sits under the nub. Check that
-   it clicks through all 9 values.
-4. Put CA on the 6 pegs only and press the front on.
+3. Fit the wheel onto the back's pin, digits up. There's no detent: turn to a value and centre it in the window by eye.
+4. Dry-fit the front (the tongue drops into the groove all round), then run a thin line of CA in the groove only and
+   press the front on.
 
 (The mechanism notes are in `models/vampire-counter/README.md`.)
 
 ## Files (`out/`)
-- `vampire_arcana_A1.3mf`: the sliced A1 project, 4 AMS slots.
-- `parts/`: 17 colour-part STLs (`<front|back|wheel>_<n>_<colour>.stl`, mm, mirrored and laid out as printed)
+- `vampire_arcana_A1.3mf`: **removed in v2** (it held v1.1 on the 0.4 nozzle); re-slice on the Windows PC.
+- `parts/`: 16 colour-part STLs (`<front|back|wheel>_<n>_<colour>.stl`, mm, mirrored and laid out as printed)
   plus `slice_args.txt`.
 - `arcana_preview.png`: the face at 1/1, 5/5 and 9/9, a nozzle simulation, and the back.
 - `arcana_detail.png`: the head, hilt and blade at print scale, plain and nozzle-simulated.
@@ -98,3 +101,6 @@ scene; vampire-counter is the same card with flat-colour alt art.
   so the wheel sat on the wrong side and the value stopped ~0.6 of a step off the window at every detent. Only the
   back art is mirrored now, checked by `assembly_check()` on the parts as printed. 1 h 06 min, 28.6 g, 6 swaps.
   **Reprint the back** (front and wheel are unchanged).
+- 2026-11-17: v2, shared mechanism update from vampire-counter v3: no detent, tongue and groove instead of pegs,
+  0.4 mm hub clearance, **0.2 mm nozzle** (0.10 mm layers). Art unchanged. Not yet sliced: regenerate the 3MF on
+  the Windows PC. **Reprint all three parts.**

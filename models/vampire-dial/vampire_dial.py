@@ -7,15 +7,15 @@ window cut where the art's 1/1 box is.
 Spec: see README.md in this folder.
 
 Parts (all printed in one go, on one plate, in the orientation they are assembled in - no flipping):
-  back   base plate + spacer frame with the wheel cavity, an axle pin, 4 alignment pegs and a
-         spring detent arm (a cantilever, free over a slot through the base) that clicks into the
-         wheel's 9 scallops
+  back   base plate + spacer frame with the wheel cavity, an axle pin and a tongue round the edge
+         (v2: the spring detent and 4 pegs are gone; the wheel's friction holds a value)
   wheel  scalloped disc; its rim pokes out of the card's right edge as a thumb grip. Raised
          black-topped "N/N" digits stand in a recessed cream channel.
-  front  the relief art (Z bands as models/vampire-token v3) with the window through it and sockets
-         underneath for the pin and pegs. The art is simplified so nothing is narrower than a bead
+  front  the relief art (Z bands as models/vampire-token v3) with the window through it and a groove
+         + pin socket underneath. The art is simplified so nothing is narrower than a bead
          (no stray specks), and the type line is re-set as printable vector text.
-Assembly: wheel onto the pin, front on top (pegs into sockets). A drop of CA glue on the pegs.
+Assembly: wheel onto the pin, front on top (tongue into groove). A thin line of CA in the groove.
+Printed with a 0.2 mm nozzle at 0.10 mm layers (v2).
 
 Colour bands: every layer of the whole plate is ONE filament, exactly like the relief token
 (cream 0-1.0, tan 1.0-1.2, red 1.2-1.6, black 1.6+). The back and wheel just take the colour of the
@@ -27,8 +27,10 @@ Outputs (millimetres) go to models\\vampire-dial\\out\\
     parts/<object>_<n>_<colour>.stl   parts; load as ONE object (slice_bambu.py --assemble)
     parts/slice_args.txt              the matching slice_bambu.py arguments
     dial_preview.png                  assembled top view at several settings + the window close up
+    text_cache.json (model folder)    the Windows-font text as outlines, for builds without the fonts
 """
 import importlib.util
+import json
 from pathlib import Path
 
 import cv2
@@ -142,10 +144,11 @@ WIN_ANGLE = -60.0               # direction wheel centre -> window
 DIGIT_R = 10.75                 # radius of the digit ring (smallest that hides the neighbours)
 CHANNEL_MARGIN = 0.4            # recessed channel extends this far past the window's footprint
 RIM = 0.8                       # raised rim between the channel and the scallop valleys
-SCALLOP_DEPTH, SCALLOP_R = 1.2, 5.0   # 9 thumb scallops = 9 detent valleys
+SCALLOP_DEPTH, SCALLOP_R = 1.2, 5.0   # 9 thumb scallops (the grip; v2 dropped the detent that seated in them)
+GRIP_ANGLE = 180.0              # a scallop sits at the wheel's left (where the detent nub used to be)
 WHEEL_FLOOR = 1.0               # channel floor (top of the cream band)
 WHEEL_T = 1.8                   # raised rim/hub/digits: tan 1.0-1.2, red 1.2-1.6, black cap 1.6-1.8
-PIN_D, PIN_CLR = 5.0, 0.25      # axle pin; radial clearance in the wheel's hole
+PIN_D, PIN_CLR = 5.0, 0.4       # axle pin; radial clearance in the wheel's hole (v2: 0.25 was too snug)
 WHEEL_CLR = 0.4                 # radial clearance wheel -> cavity wall
 AX_CLR = 0.4                    # axial play: cavity height = WHEEL_T + AX_CLR
 WALL = 0.9                      # minimum spacer wall to the card edge
@@ -154,18 +157,17 @@ WALL = 0.9                      # minimum spacer wall to the card edge
 BASE_T = 0.6                    # back plate under the wheel
 CAVITY = WHEEL_T + AX_CLR       # 2.2
 BACK_T = BASE_T + CAVITY        # 2.8: the front sits on this
-PEG_D, PEG_H = 2.0, 0.4         # alignment pegs on the spacer (and the pin) go into front sockets
-SOCKET_D_CLR = 0.15             # per side
-SOCKET_DEPTH = 0.6
-PEGS = [(5.0, 5.0), (5.0, CARD_H - 5.0), (CARD_W - 5.0, CARD_H - 5.0), (24.0, 4.0)]
-
-# Detent: a cantilever spring in the spacer; its nub sits in a scallop valley at DETENT_ANGLE.
-DETENT_ANGLE = 180.0            # left side of the wheel; the arm runs up from there
-ARM_L, ARM_T = 14.0, 1.0        # free length, width (in-plane); strain ~1% at full deflection
-ARM_TOP_CLR = 0.2               # below the front
-NUB_R, PRELOAD = 1.2, 0.2       # nub radius; interference in a valley so it seats firmly
-ARM_GAP = 0.4                   # clearance around the arm
-SWING = SCALLOP_DEPTH + PRELOAD + 0.4   # room for the tip to deflect outward
+# Tongue and groove (v2, replaces the 4 pegs; same joint as models/vampire-counter): a ridge on the
+# spacer's top face runs round the card edge wherever the wheel cavity leaves room, the front's
+# underside has the matching groove. The wheel cavity sits in the bottom-right corner, so the ridge is
+# one run from the bottom edge, round the left, top and right side down to the wheel.
+TONGUE_W, TONGUE_H = 1.2, 0.6   # ~5 lines wide at a 0.2 nozzle, 6 layers tall at 0.10 mm
+TONGUE_INSET = 2.0              # card edge -> tongue centreline
+TONGUE_CLR = 0.15               # per side, in the groove
+TONGUE_GAP = 1.2                # tongue edge -> wheel cavity, minimum
+TONGUE_MIN_LEN = 8.0            # shorter runs are dropped
+GROOVE_DEPTH = TONGUE_H + 0.2   # 0.2 mm of glue room above the tongue (and the pin)
+SOCKET_D_CLR = 0.15             # per side, the pin's socket in the front
 
 PLATE_GAP = 8.0                 # spacing of the three objects on the bed
 # Slicer overrides. Arachne prints strokes down to ~0.1 mm. With its default transitions, a region
@@ -176,11 +178,32 @@ PLATE_GAP = 8.0                 # spacing of the three objects on the bed
 # v1.7: also min_bead_width 50% + wall_transition_length 50%. Single-bead letter strokes (0.6 mm) left
 # V-dents where strokes join (tops of n/m/r/p, the k); measured on the type line: 3.03 -> 1.90 mm^2 of
 # the letters left uncovered, streamer still solid, black top-layer gaps 19 -> 18.
+# v2: 0.2 mm nozzle, 0.10 mm layers (every band and height here is a multiple of 0.1 mm). Those
+# measurements were made on the 0.4 nozzle; the settings are in % of the nozzle, so they carry over.
+SLICER_PRESETS = ["--machine", "Bambu Lab A1 0.2 nozzle", "--process", "0.10mm Standard @BBL A1 0.2 nozzle",
+                  "--filament", "Bambu PLA Basic @BBL A1 0.2 nozzle"]
 SLICER_SET = ["wall_generator=arachne", "wall_transition_angle=30", "wall_transition_filter_deviation=50%",
               "min_bead_width=50%", "wall_transition_length=50%"]
 # ---------------------------------------------------------------------------
 
 C = np.array(PT_BOX) - DIGIT_R * np.array([np.cos(np.radians(WIN_ANGLE)), np.sin(np.radians(WIN_ANGLE))])
+
+
+def text_cache(cache_file, key, make, font_file):
+    """Text set in a Windows font, cached as geometry so the model rebuilds identically where the font
+    isn't installed (e.g. a Linux cloud session). With the font: build it and refresh the cache.
+    Without it: use the cached outline (else make() falls back to a DejaVu font)."""
+    from shapely import from_wkt, to_wkt
+    cache = json.loads(cache_file.read_text()) if cache_file.exists() else {}
+    if Path(font_file).exists() or key not in cache:
+        g = make()
+        if Path(font_file).exists():
+            w = to_wkt(g, rounding_precision=6)
+            if cache.get(key) != w:
+                cache[key] = w
+                cache_file.write_text(json.dumps(cache, indent=0))
+        return g
+    return from_wkt(cache[key])
 
 
 def rounded_box(cx, cy, w, h, r):
@@ -258,7 +281,7 @@ def wheel_geometry():
     channel = disk(C, r_out).difference(disk(C, r_in))
     scallops = unary_union([
         disk(C + (R + SCALLOP_R - SCALLOP_DEPTH) * np.array([np.cos(a), np.sin(a)]), SCALLOP_R, 32)
-        for a in np.radians(DETENT_ANGLE + STEP * np.arange(len(VALUES)))])
+        for a in np.radians(GRIP_ANGLE + STEP * np.arange(len(VALUES)))])
     hole = disk(C, PIN_D / 2 + PIN_CLR, 32)
     disc = disk(C, R, 256).difference(scallops).difference(hole)
     # value v is laid out upright at the window, then turned back (v-1) steps: turning the wheel
@@ -275,26 +298,16 @@ def wheel_geometry():
     return dict(R=R, r_in=r_in, r_out=r_out, r_valley=r_valley, disc=disc, raised=raised, groups=groups)
 
 
-def detent(R, r_valley):
-    a = np.radians(DETENT_ANGLE)
-    u = np.array([np.cos(a), np.sin(a)])         # radial, outward
-    t = np.array([np.sin(a), -np.cos(a)])        # tangent (clockwise): the arm runs this way
-    tip = C + (R + ARM_GAP + ARM_T / 2) * u
-    root = tip + ARM_L * t
-    beam = LineString([tip, root + 1.5 * t]).buffer(ARM_T / 2, cap_style="flat")
-    nub = Point(*(C + (r_valley - PRELOAD + NUB_R) * u)).buffer(NUB_R, quad_segs=16)
-    tip_block = LineString([tip, tip + 2 * NUB_R * t]).buffer(ARM_T / 2, cap_style="flat")
-    arm = unary_union([beam, nub.union(tip_block).convex_hull])
-    # pocket: the arm at rest and swung out by SWING at the tip, plus clearance
-    rest = LineString([tip, root]).buffer(ARM_T / 2, cap_style="flat").union(nub.union(tip_block).convex_hull)
-    best = None
-    for sgn in (1, -1):
-        sw = affinity.rotate(rest, sgn * np.degrees(np.arctan(SWING / ARM_L)), origin=tuple(root))
-        d = Point(*C).distance(sw.centroid)
-        if best is None or d > best[0]:
-            best = (d, sw)
-    pocket = rest.union(best[1]).convex_hull.buffer(ARM_GAP, join_style="mitre")
-    return arm, pocket
+def edge_tongue(card, cavity, inset, width, gap, min_len):
+    """Tongue-and-groove ridge footprint (shared with models/vampire-counter): a ridge `inset` in from the
+    card edge, broken where it would come within `gap` of the cavity; runs under `min_len` are dropped.
+    Returns (footprint, run lengths)."""
+    from shapely.ops import linemerge
+    ring = card.buffer(-inset, quad_segs=16).exterior
+    runs = ring.difference(cavity.buffer(width / 2 + gap, quad_segs=64))
+    runs = linemerge(runs) if runs.geom_type == "MultiLineString" else runs
+    runs = [ln for ln in getattr(runs, "geoms", [runs]) if ln.length >= min_len]
+    return unary_union([ln.buffer(width / 2, quad_segs=12) for ln in runs]), [ln.length for ln in runs]
 
 
 def _disk_px(d):
@@ -434,7 +447,7 @@ def type_font():
     from fontTools.varLib.instancer import instantiateVariableFont
     src, axes = TYPE_FONT
     if not Path(src).exists():
-        print(f"  warning: {src} not found, type line falls back to DejaVu Sans Bold")
+        print(f"  warning: {src} not found and not cached, type line falls back to DejaVu Sans Bold")
         return FontProperties(family="DejaVu Sans", weight="bold")
     dst = Path(tempfile.gettempdir()) / f"vampire_dial_{Path(src).stem}_{axes['wght']}_{axes['wdth']}.ttf"
     if not dst.exists():
@@ -470,11 +483,15 @@ def lay_out(runs, fp, k, track, bolden):
 
 
 def title():
+    return text_cache(HERE / "text_cache.json", "title", _title, TITLE_FONT)
+
+
+def _title():
     """The title as vector text, centred where the art's lettering was. Card frame (y up)."""
     if Path(TITLE_FONT).exists():
         fp = FontProperties(fname=TITLE_FONT)
     else:
-        print(f"  warning: {TITLE_FONT} not found, title falls back to DejaVu Serif Bold")
+        print(f"  warning: {TITLE_FONT} not found and not cached, title falls back to DejaVu Serif Bold")
         fp = FontProperties(family="DejaVu Serif", weight="bold")
     k = (TITLE_CAP - 2 * TITLE_BOLDEN) / glyphs(TITLE_RUNS[0][0][0], fp).bounds[3]
     g = lay_out(TITLE_RUNS, fp, k, TITLE_TRACK, TITLE_BOLDEN)
@@ -486,6 +503,10 @@ def title():
 
 
 def type_line():
+    return text_cache(HERE / "text_cache.json", "type_line", _type_line, TYPE_FONT[0])
+
+
+def _type_line():
     """The type line as vector text, left-aligned in the type box and centred vertically."""
     fp = type_font()
 
@@ -606,9 +627,9 @@ def front_prisms(regions, card, sockets):
                 g = unary_union([regions[c] for c in cols]).buffer(0.01, join_style="mitre") \
                     .buffer(-0.01, join_style="mitre").intersection(card)
             g = g.difference(win)
-            if z0 == 0.0:  # sockets in the underside of the base
-                out.append((0.0, SOCKET_DEPTH, g.difference(sockets), slot))
-                out.append((SOCKET_DEPTH, z1, g, slot))
+            if z0 == 0.0:  # groove and pin socket in the underside of the base
+                out.append((0.0, GROOVE_DEPTH, g.difference(sockets), slot))
+                out.append((GROOVE_DEPTH, z1, g, slot))
             else:
                 out.append((z0, z1, g, slot))
     return out
@@ -665,31 +686,33 @@ def main():
     card = vt.rounded_rect(CARD_W, CARD_H, vt.CORNER_R)
     wh = wheel_geometry()
     R = wh["R"]
-    arm, pocket = detent(R, wh["r_valley"])
-    cavity = disk(C, R + WHEEL_CLR, 256).union(pocket)
+    cavity = disk(C, R + WHEEL_CLR, 256)
     spacer = card.difference(cavity)
-    base = card.difference(pocket)
-    peg_disks = unary_union([disk(p, PEG_D / 2, 24) for p in PEGS])
-    sockets = unary_union([disk(p, PEG_D / 2 + SOCKET_D_CLR, 24) for p in PEGS] +
-                          [disk(C, PIN_D / 2 + SOCKET_D_CLR, 32)])
+    base = card
+    ridge, runs = edge_tongue(card, cavity, TONGUE_INSET, TONGUE_W, TONGUE_GAP, TONGUE_MIN_LEN)
+    pin = disk(C, PIN_D / 2, 32)
+    sockets = unary_union([ridge.buffer(TONGUE_CLR, quad_segs=12), disk(C, PIN_D / 2 + SOCKET_D_CLR, 32)])
 
     # sanity checks on the layout
     protrude = C[0] + R - CARD_W
     bottom_wall = C[1] - R - WHEEL_CLR
     assert bottom_wall >= WALL - 1e-6, f"wheel cavity is {bottom_wall:.2f} mm from the bottom edge"
     assert 1.5 <= protrude <= 3.5, f"rim protrudes {protrude:.2f} mm"
-    assert card.buffer(-WALL).contains(pocket), "detent pocket too close to the card edge"
-    for p in PEGS:
-        assert spacer.buffer(-0.8).contains(disk(p, PEG_D / 2, 24)), f"peg {p} not on solid spacer"
-    assert arm.intersection(spacer).area > 0.5, "detent arm root must be anchored in the spacer"
-    assert arm.intersection(disk(C, wh["r_valley"] - PRELOAD - 0.01)).is_empty, "nub preload too deep"
+    assert spacer.buffer(-0.5).contains(ridge), "tongue must stand on solid spacer"
+    assert card.buffer(-1.0).contains(sockets), "the front's groove needs an outer wall of >= 1 mm"
+    assert sockets.disjoint(window().buffer(0.5)), "groove runs into the window"
+    assert sum(runs) > 0.6 * card.buffer(-TONGUE_INSET).length, "tongue covers too little of the edge"
+    assert PIN_D / 2 + PIN_CLR < wh["r_in"] - 0.8, "hub hole runs into the digit channel"
+    assert GROOVE_DEPTH <= BANDS[0][1] - 0.2, "groove must stay in the front's cream base"
 
     print(f"card: {CARD_W:.1f} x {CARD_H:.1f} mm, {BACK_T + FRONT_T:.1f} mm thick assembled "
           f"({CARD_W / 25.4:.3f} x {CARD_H / 25.4:.3f} x {(BACK_T + FRONT_T) / 25.4:.3f} in)")
     print(f"wheel: centre ({C[0]:.2f}, {C[1]:.2f}), R {R:.2f} (valleys {wh['r_valley']:.2f}), "
           f"channel {wh['r_in']:.2f}-{wh['r_out']:.2f}, digits at r {DIGIT_R}, "
           f"rim protrudes {protrude:.2f} mm past the right edge (valleys {protrude - SCALLOP_DEPTH:.2f}), "
-          f"bottom wall {bottom_wall:.2f} mm")
+          f"bottom wall {bottom_wall:.2f} mm; hub hole {PIN_D + 2 * PIN_CLR:.1f} on a {PIN_D:.1f} pin")
+    print(f"tongue: {TONGUE_W} x {TONGUE_H} mm, {len(runs)} runs " + ", ".join(f"{x:.1f}" for x in runs) +
+          f" mm; groove {TONGUE_W + 2 * TONGUE_CLR:.1f} x {GROOVE_DEPTH:.1f} mm")
 
     regions = front_regions(card)
     print("front colours: " + ", ".join(f"{vt.PALETTE[k][0]} {100 * regions[k].area / card.area:.1f}%"
@@ -699,9 +722,8 @@ def main():
     print("thinner than a bead (mm^2, mostly corner rounding): " + ", ".join(
         f"{n} {a:.2f}" for n, a in thin_report(regions).items()))
 
-    arm_top = BACK_T - ARM_TOP_CLR
-    back_prisms = [(0.0, BASE_T, base), (0.0, arm_top, arm), (BASE_T, BACK_T, spacer),
-                   (BASE_T, BACK_T + PEG_H, disk(C, PIN_D / 2, 32)), (BACK_T, BACK_T + PEG_H, peg_disks)]
+    back_prisms = [(0.0, BASE_T, base), (BASE_T, BACK_T, spacer),
+                   (BASE_T, BACK_T + TONGUE_H, pin), (BACK_T, BACK_T + TONGUE_H, ridge)]
     wheel_prisms = [(0.0, WHEEL_FLOOR, wh["disc"]), (WHEEL_FLOOR, WHEEL_T, wh["raised"])]
     wheel_off = (2 * (CARD_W + PLATE_GAP) + R - C[0], R - C[1] + 2)
     objects = [
@@ -725,41 +747,41 @@ def main():
             print(f"  {fn.name:22s} z {z0:.1f}-{z1:.1f}  {g.area * (z1 - z0) / 1000:.2f} cm^3")
     (PARTS / "slice_args.txt").write_text(
         " ".join(files) + f" --assemble --extruders {','.join(map(str, slots))} "
-        f"--colors \"{','.join(h for _, h in vt.PALETTE)}\" " + " ".join("--set " + x for x in SLICER_SET) + "\n")
+        f"--colors \"{','.join(h for _, h in vt.PALETTE)}\" "
+        + " ".join(f'{a} "{b}"' for a, b in zip(SLICER_PRESETS[::2], SLICER_PRESETS[1::2])) + " "
+        + " ".join("--set " + x for x in SLICER_SET) + "\n")
     print("model grams per slot (PLA 1.24 g/cm^3, solid, before purge): " +
           ", ".join(f"{i + 1} {vt.PALETTE[i][0]} {g:.2f}" for i, g in enumerate(grams)))
     preview(regions, card, wh, OUT / "dial_preview.png")
-    parts_preview(card, base, spacer, arm, pocket, peg_disks, wh, OUT / "parts_preview.png")
+    parts_preview(card, spacer, ridge, sockets, wh, OUT / "parts_preview.png")
 
 
-def parts_preview(card, base, spacer, arm, pocket, pegs, wh, path):
-    """Top views of the back (with the wheel's outline) and the wheel, plus the detent close up."""
+def parts_preview(card, spacer, ridge, sockets, wh, path):
+    """Top views of the back (with the wheel's outline), the front's underside, and the wheel."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     fig, axes = plt.subplots(1, 3, figsize=(15, 6.5))
-    for ax in axes:
-        draw(ax, card.difference(base), "#ffffff")
-        draw(ax, base, "#e8d2a8")                   # base plate (0-0.6)
-        draw(ax, spacer, "#7a6a58")                 # spacer frame (0.6-2.8)
-        draw(ax, arm, "#b03a2e")                    # detent arm (free over the slot)
-        draw(ax, disk(C, PIN_D / 2), "#3a2d25")
-        draw(ax, pegs, "#3a2d25")
-        ax.plot(*np.asarray(wh["disc"].exterior.coords).T, color="#1f5fa8", lw=0.8)
-        ax.set_aspect("equal"); ax.set_xticks([]); ax.set_yticks([])
-    axes[0].set_xlim(-2, CARD_W + 5); axes[0].set_ylim(-2, CARD_H + 2)
-    axes[0].set_title("back: base (beige), spacer (brown), detent arm (red); wheel outline blue")
-    a = np.radians(DETENT_ANGLE)
-    d = C + wh["R"] * np.array([np.cos(a), np.sin(a)])
-    axes[1].set_xlim(d[0] - 6, d[0] + 6); axes[1].set_ylim(d[1] - 4, d[1] + ARM_L + 3)
-    axes[1].set_title("detent: nub seated in a scallop valley")
+    ax = axes[0]
+    draw(ax, spacer, "#7a6a58")                     # spacer frame (0.6-2.8)
+    draw(ax, card.difference(spacer), "#e8d2a8")    # base plate under the wheel (0-0.6)
+    draw(ax, ridge, "#b03a2e")                      # tongue (2.8-3.4)
+    draw(ax, disk(C, PIN_D / 2), "#3a2d25")
+    ax.plot(*np.asarray(wh["disc"].exterior.coords).T, color="#1f5fa8", lw=0.8)
+    ax.set_title("back: base (beige), spacer (brown), tongue (red), pin; wheel outline blue", fontsize=9)
+    ax = axes[1]
+    draw(ax, card.difference(window()), "#e8d2a8")
+    draw(ax, sockets, "#7a6a58")
+    ax.set_title("front underside (front-view frame): groove + pin socket", fontsize=9)
+    for ax in axes[:2]:
+        ax.set_xlim(-2, CARD_W + 5); ax.set_ylim(-2, CARD_H + 2)
     ax = axes[2]
-    ax.cla()
     draw(ax, wh["disc"], "#e8d2a8")
     draw(ax, wh["raised"], "#241B16")
-    ax.set_aspect("equal"); ax.set_xticks([]); ax.set_yticks([])
     ax.set_xlim(C[0] - wh["R"] - 1, C[0] + wh["R"] + 1); ax.set_ylim(C[1] - wh["R"] - 1, C[1] + wh["R"] + 1)
-    ax.set_title("wheel (top): black raised rim, hub and digits; cream channel")
+    ax.set_title(f"wheel (top); hub {PIN_D + 2 * PIN_CLR:.1f} mm on a {PIN_D:.0f} mm pin", fontsize=9)
+    for ax in axes:
+        ax.set_aspect("equal"); ax.set_xticks([]); ax.set_yticks([])
     plt.tight_layout()
     plt.savefig(path, dpi=130)
     plt.close(fig)

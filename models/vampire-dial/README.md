@@ -12,49 +12,53 @@ existing 1/1 but that can change if needed."
 |---|---|
 | Card | 63 × **92** mm (art 63 × 88 + 4 mm extra black border at the bottom), 3 mm corners |
 | Thickness | **4.8 mm** assembled: back 2.8 (0.6 plate + 2.2 wheel cavity) + front 2.0 (the v3 relief) |
-| Dial | one wheel, 9 positions × 40°: **1/1 … 9/9** (power = toughness), detent click per value |
+| Dial | one wheel, 9 positions × 40°: **1/1 … 9/9** (power = toughness), held by friction (no detent since v2) |
 | Window | 7.4 × 3.8 mm, centred in the art's P/T box (same place as the printed 1/1) |
 | Digits | DejaVu Sans Bold +0.05 mm bold, 3.0 mm tall, black tops, raised 0.8 mm in a cream channel |
-| Wheel | Ø 33 mm, 9 thumb scallops; the rim protrudes **2.4 mm** (valleys 1.2 mm) past the right edge |
+| Wheel | Ø 33 mm, 9 thumb scallops; the rim protrudes **2.4 mm** (valleys 1.2 mm) past the right edge; hub Ø5.8 on a Ø5 pin (**0.4 mm** radial clearance) |
+| Joint | **tongue and groove**: 1.2 × 0.6 mm ridge 2 mm in from the edge, one 241 mm run from the bottom edge round the left, top and right side to the wheel, in a 1.5 × 0.8 mm groove under the front |
 | Turning | push the rim **up** to count up, down to count down |
 | Colours | the same 4 AMS slots as the token: 1 black `#241B16`, 2 red `#8E1D19`, 3 tan `#B08551`, 4 cream `#F0CB9A` |
-| Material / printer | Bambu PLA Basic, A1 0.4 mm, 0.20 mm Standard + Arachne walls (`wall_transition_angle` 30, `wall_transition_filter_deviation` 50%, `min_bead_width` 50%, `wall_transition_length` 50%), Textured PEI (65 °C) |
-| Plates | 1: front, back and wheel side by side (one object, 16 colour parts) |
+| Material / printer | Bambu PLA Basic, A1 **0.2 mm nozzle**, 0.10mm Standard @BBL A1 0.2 nozzle + Arachne walls (`wall_transition_angle` 30, `wall_transition_filter_deviation` 50%, `min_bead_width` 50%, `wall_transition_length` 50%), Textured PEI (65 °C) |
+| Plates | 1: front, back and wheel side by side (one object, 15 colour parts) |
 | Art | simplified for a 0.4 mm nozzle: every colour ≥ 0.5 mm wide, no islands < 1 mm² (face: 0.45 mm / 0.4 mm²); set symbol thickened 0.1 mm per side; the 3 framed boxes redrawn with a uniform 0.6 mm tan rim + 0.5 mm black outline |
 | Title | re-set as vector text: Cambria Bold (+0.1 mm bold, +0.35 mm spacing), V 4.2 mm + small caps 3.5 mm (art: 3.2 / 2.7) |
 | Type line | re-set as vector text, Bahnschrift SemiBold Condensed (+0.04 mm bold, +0.45 mm letter spacing), 2.7 mm cap height |
-| Print | **56 min, 25.9 g, 3 filament swaps, ~0.5 g purge** |
-| Model grams per slot | black 9.1, red 4.8, tan 2.5, cream 14.8 (solid volume; the 15 % infill makes the real total lower) |
+| Print | **v2 not sliced yet** (built in a cloud session without Bambu Studio; see Rebuild). Still 3 swaps by construction (one filament per layer). v1.7 on the 0.4 nozzle: 56 min, 25.9 g |
+| Model grams per slot | black 9.4, red 4.8, tan 2.6, cream 14.5 (solid volume; the 15 % infill makes the real total lower) |
 
-### Mechanism
+### Mechanism (v2)
 ```
  side section (not to scale)                         z (mm)
  ┌───────────── front: relief art, window ───────┐  2.8–4.8
- │░░░░░░░░░░░░░░░░░░ sockets ▼    ▼ ░░░░░░░░░░░░░│
- └───────────────────────────────────────────────┘
-  ▐peg▌      ▐ wheel 1.8 thick ▌ ▐pin▌   ▐rim ▌→ pokes out of the right edge
- ┌──────────┐ ═══════════════════════════ ┌──────┐  0.6–2.8 spacer frame + detent arm
+ │░▄▄░░░░░░░░░░░░░░░░░░░░ socket ▼ ░░░░░░░░░░░▄▄░│  groove 0.8 deep in the underside
+ └─▀▀────────────────────────────────────────▀▀──┘
+   ▲tongue    ▐ wheel 1.8 thick ▌ ▐pin▌   ▐rim ▌→ pokes out of the right edge
+ ┌──────────┐ ═══════════════════════════ ┌──────┐  0.6–2.8 spacer frame (tongue 2.8–3.4)
  └───────────────── back plate ──────────────────┘  0–0.6
 ```
-- **Back**: plate + spacer frame with the wheel cavity (0.4 mm radial clearance), a Ø5 axle pin, 4 Ø2
-  alignment pegs, and a **detent spring**: a 14 × 1 mm cantilever left of the wheel whose nub
-  (R 1.2, 0.2 mm preload) sits in one of the wheel's 9 scallops. The arm stands free over a slot cut
-  through the back plate, so it isn't fused to it (the slot is visible on the back of the card).
-  Full deflection is about 1% strain, well inside PLA's limit.
+- **Back**: plate + spacer frame with the wheel cavity (0.4 mm radial clearance), a Ø5 axle pin, and a 1.2 × 0.6 mm
+  tongue on the spacer 2 mm in from the edge. It runs from the bottom edge, round the left, top and right side, down
+  to the wheel (241 mm). There is no detent: the wheel's friction in the case holds a value.
 - **Wheel**: 1.0 mm cream disc, plus a 0.8 mm raised rim, hub and "N/N" digits (tan → red → black, so
-  their tops are black). Hub hole: 0.25 mm radial clearance on the pin. 0.4 mm axial play in the cavity.
+  their tops are black). Hub hole: 0.4 mm radial clearance on the pin. 0.4 mm axial play in the cavity.
 - **Front**: the relief art (same Z bands as v3: cream base 1.0, tan, red, black ink 1.6–2.0, but simplified, see below), the window cut
-  through it, and 0.6 mm-deep sockets underneath for the pegs and the pin top.
+  through it, and a 1.5 × 0.8 mm groove plus the pin's socket in its underside.
 
 ### Assembly
-1. Peel the three parts off the plate. Clean any brim or elephant-foot off the wheel's hole and rim.
-2. Drop the wheel onto the back's pin, black side up. Push the detent arm aside slightly so the nub
-   lands in a scallop.
+1. Peel the three parts off the plate. Clean any brim or elephant-foot off the wheel's hole, its rim and the tongue.
+2. Drop the wheel onto the back's pin, black side up.
 3. Turn the wheel until "1/1" sits where the window will be (bottom right; its tops face the front's P/T box).
-4. Lay the front on top so the pegs and pin enter its sockets. Glue with a drop of **CA on the 4 pegs only**
-   (not the pin, and keep glue away from the wheel). Press flat while it sets.
+4. Dry-fit the front: the tongue drops into the groove all the way round and the pin enters its socket. Then run a thin
+   line of **CA in the groove only** (not the pin, and keep glue away from the wheel). Press flat while it sets.
 
 ## Decisions & interpretations
+- **v2 (2026-11-17), ported from vampire-counter v3**: the detent arm is gone (the wheel's friction holds a value,
+  and the arm was a failure point), the 4 pegs became a tongue and groove round the edge, the hub got 0.4 mm
+  clearance (was 0.25), and the build targets the **0.2 mm nozzle** (0.10 mm layers; every Z band and height is a
+  multiple of 0.1). With no arm, the back plate has no slot through it. The scallops stay as the grip. The art is
+  unchanged: its STLs match v1.7. The Cambria and Bahnschrift text is cached as outlines in `text_cache.json`, so
+  the model rebuilds identically on a machine without those Windows fonts.
 - **One linked wheel (N/N)**, not separate power and toughness wheels: "a scrolling wheel" and the
   "1/1 – 9/9" range read as one value. That also suits vampire tokens, which mostly grow with
   +1/+1 counters. Two independent wheels would need two digit rings and roughly twice the area.
@@ -65,7 +69,7 @@ existing 1/1 but that can change if needed."
   ~5 mm left and up into the type line. (a) was chosen: the window stays on the art's P/T box, as asked.
   The extra rows are black border, inserted inside the art's existing bottom border.
 - **Rim out of the right edge**: a thumb needs something to push. 9 deep scallops serve as the grip
-  and as the detent notches, so each click lands on a value. Push up to count up.
+  (and, until v2, as the detent notches). Push up to count up.
 - **Zero extra colour swaps**: every part uses the relief token's Z bands (cream 0–1.0, tan 1.0–1.2,
   red 1.2–1.6, black 1.6+). Each layer of the whole plate is still a single filament: **3 swaps**, all
   light → dark, the same as the plain relief token. The cost is that the back's and wheel's edges are
@@ -76,8 +80,8 @@ existing 1/1 but that can change if needed."
   air gap. Three flat parts that stack in their printed orientation are more reliable.
 - **No STEP**: the front is raster art turned into a mesh (see `models/vampire-token`). The back and
   wheel are built with shapely in the same script, so their parameters are all at the top of `vampire_dial.py`.
-- Tunables if the fit is off: `PIN_CLR`, `WHEEL_CLR`, `AX_CLR` (looseness), `PRELOAD` / `ARM_T` (detent
-  force), `SCALLOP_DEPTH` (grip and click depth), `SOCKET_D_CLR` (peg fit).
+- Tunables if the fit is off: `PIN_CLR`, `WHEEL_CLR`, `AX_CLR` (looseness), `SCALLOP_DEPTH` (grip),
+  `TONGUE_CLR` / `SOCKET_D_CLR` (joint fit), `TONGUE_W` / `TONGUE_H` / `TONGUE_INSET` / `TONGUE_GAP`.
 
 - **Art simplification (v1.2)**: the v3 clean-up kept strokes ≥ 0.25 mm and specks ≥ 0.04 mm². Arachne prints
   0.25–0.4 mm strokes as broken single beads, so the print showed hundreds of stray dots and dashes. The front now
@@ -143,11 +147,10 @@ existing 1/1 but that can change if needed."
   meet, the two rims overlap and are joined with a 0.45 mm fillet.
 
 ## Files (`out/`)
-- `vampire_dial_A1.3mf`: sliced A1 project, 4 AMS slots. Open in Bambu Studio, map slots to your spools, and print from there.
-- `parts/`: the 16 colour-part STLs (`<front|back|wheel>_<n>_<colour>.stl`, mm, laid out as on the plate) + `slice_args.txt`.
+- `vampire_dial_A1.3mf`: **removed in v2** (it held v1.7 on the 0.4 nozzle). Re-slice on the Windows PC (see Rebuild), open it in Bambu Studio, map slots to your spools, and print from there.
+- `parts/`: the 15 colour-part STLs (`<front|back|wheel>_<n>_<colour>.stl`, mm, laid out as on the plate) + `slice_args.txt`.
 - `dial_preview.png`: assembled top view at 1/1, 4/4 and 9/9, plus a window close-up.
-- `parts_preview.png`: back (spacer, detent arm, pin, pegs), detent close-up, wheel top.
-- `plate_preview.png`: Bambu's plate render.
+- `parts_preview.png`: back (spacer, tongue, pin), front underside (groove, pin socket), wheel top.
 
 ## Rebuild
 ```powershell
@@ -167,3 +170,6 @@ Depends on `models/vampire-token/vampire_token.py` (art pipeline and source imag
 - 2026-11-11: v1.5, top border cleared: no red/white flag and spear tips above the title bar.
 - 2026-11-11: v1.6, Arachne transition tuning (angle 30, deviation 50%): the banner streamer prints solid. 56 min, 26.0 g, 3 swaps.
 - 2026-11-11: v1.7, exact vector frames for the type line and P/T box (straight rims, filleted joint, P/T box centred on the window). Arachne `min_bead_width`/`wall_transition_length` 50% for fuller letter junctions. 56 min, 25.9 g, 3 swaps.
+- 2026-11-17: v2, mechanism from vampire-counter v3: no detent, tongue and groove instead of pegs, 0.4 mm hub
+  clearance, **0.2 mm nozzle** (0.10 mm layers, 0.2 nozzle presets); fonts cached in `text_cache.json`. Art unchanged.
+  Not yet sliced: regenerate the 3MF on the Windows PC. **Reprint all three parts.**

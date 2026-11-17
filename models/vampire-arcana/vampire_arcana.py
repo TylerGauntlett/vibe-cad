@@ -8,16 +8,17 @@ in a matching footer plate. Simple borders: a black card edge and black rules be
 
 Spec: see README.md in this folder.
 
-Printing: the front and the wheel print FACE-DOWN, so the art is a flat 0.4 mm inlay (two layers) in
-the first layers on the plate: a smooth face with crisp colour edges and no relief steps. Above
-INLAY everything (front, wheel, back) is white. Every colour change is in layers 1-2, so the whole
-plate needs ~6 swaps however much ink the art has.
+Printing: the front and the wheel print FACE-DOWN, so the art is a flat 0.4 mm inlay (four 0.10 mm
+layers on the 0.2 nozzle) in the first layers on the plate: a smooth face with crisp colour edges and
+no relief steps. Above INLAY everything (front, wheel, back) is white. Every colour change is in the
+inlay layers, however much ink the art has.
 
 The frame, mechanism and build are shared with models/vampire-counter (imported from it), which is
 the same card with colour-fill alt art: plates, rules, title, footer window box and back come from
 `vc.frame()` / `vc.finish()` / `vc.back_regions()`, the plate from `vc.write_plate()`. This file is
-only the woodcut scene. The mechanism is the vampire-counter v1.2 wheel and detent: one wheel, 9 V
-notches, a tapered filleted cantilever detent, black digits inlaid flat in the wheel's white face.
+only the woodcut scene. The mechanism is the vampire-counter v3 one: one wheel (9 V notches as a
+grip, black digits inlaid flat in its white face) on an axle pin, held by friction (no detent), and a
+tongue-and-groove joint between front and back.
 
 Run (from the repo root):
     .venv\\Scripts\\python.exe models\\vampire-arcana\\vampire_arcana.py
