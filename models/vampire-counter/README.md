@@ -16,41 +16,94 @@ same frame, type, dial footer, print method and back, with only the art plate di
 ## Spec (as built)
 | Parameter | Value |
 |---|---|
-| Card | 63 × 88 mm (standard token size), 3 mm corners, **4.8 mm** thick assembled (back 2.8 + front 2.0) |
-| Frame (shared with arcana) | black card edge 1.8 mm, black rules 1.2 mm; white plates: title 12.4 mm, art 53.4 mm, footer 16.2 mm |
-| Title (shared) | "VAMPIRE", **Georgia Regular, 6.0 mm caps**, black on the white title plate, 45.9 mm long in a 59.4 mm plate |
-| Dial | one wheel, 9 positions × 40°: **1/1 … 9/9**, click detent at each value |
-| Digits | Bahnschrift Bold Condensed, **8.0 mm** tall, slash cut to digit height, black inlaid flat in the white wheel |
-| Window (shared) | 13.7 × 9.3 mm at (32.4, 10.2), in a ruled box (0.7 white mat + 0.7 black rule) in the footer, a bat either side |
-| Wheel | Ø 58.9 mm, digit ring r 21, 9 **V notches** (1.3 deep, 35° flanks, 0.6 mm rounded edges); the rim pokes **2.5 mm** out of the right edge |
-| Detent | 26 mm cantilever tapered 1.4 → 2.2 mm, R 3 root fillet, Ø2 nub on both notch flanks with 0.4 mm preload. Holds **0.40 N** seated and 1.47 N over the rim at **0.52 %** peak strain; the pocket wall stops it at 0.73 % |
-| Turning | push the rim **up** to count up |
+| Card | **70.5** × 88 mm (v4: widened from the 63 mm token size so two wheels fit), 3 mm corners, **4.8 mm** thick assembled (back 2.8 + front 2.0; the tongue sits in the front's groove) |
+| Frame (shared with arcana) | black card edge 1.8 mm, black rules 1.2 mm; white plates: title 12.4 mm, art 66.9 × 53.4 mm, footer 16.2 mm |
+| Title (shared) | "VAMPIRE", **Georgia Regular, 6.0 mm caps**, black on the white title plate, 45.9 mm long in a 66.9 mm plate (59.4 before v4) |
+| Dial | **two wheels**: power (bottom-left, rim out of the left edge) and toughness (bottom-right, rim out of the right edge), 9 positions × 40°, **1–9 each**, held by friction (no detent since v3) |
+| Digits | Bahnschrift Bold Condensed, **8.0 mm** tall, one per window, black inlaid flat in the white wheels |
+| Windows (shared) | 5.9 × 9.3 mm at (15.9, 8.6) and (54.6, 8.6), each in a ruled box (0.7 white mat + 0.7 black rule) in the footer's corners; between them a **bat shaped as the "/"** |
+| Wheels | Ø 36.8 mm each, digit ring r 11.2, 9 **V notches** as a grip (1.3 deep, 35° flanks, 0.6 mm rounded edges); each rim pokes **2.5 mm** out of its side; 1.07 mm of spacer between the cavities; hubs Ø6.8 on Ø6 pins (**0.4 mm** radial clearance) |
+| Joint | **tongue and groove**: 1.2 × 0.6 mm ridge 2 mm in from the edge (186 mm in 2 runs: down both sides to the wheels and across the top; along the bottom between the wheels), in a 1.5 × 0.8 mm groove under the front; the pins in 0.8 mm sockets |
+| Turning | push either rim **up** to count up |
 | Art (this card's own) | flat-colour vector scene: an elder vampire knight (long white hair, pointed beard, layered pauldrons with copper edges, gorget, red cloak, sword planted point-down) before a **blood moon**, with copper cloud streaks, bats and a black castle with red lancet windows |
 | Colours (shared) | 1 ink `#1E1A18`, 2 blood `#9B1B1E`, 3 gold `#B87333` (copper), 4 paper `#F4F1EA` (white): the same spools as v1 |
-| Inlay (shared) | **face-down**, 0.4 mm (2 layers) of colour on front, back and wheel; everything above is white |
-| Back (shared) | black edge plus a gold crescent and bat, inlaid in the same 2 layers |
-| Material / printer | Bambu PLA Basic, A1 0.4 mm, 0.20 mm Standard + Arachne, first layer 30 mm/s walls and 60 mm/s infill, Textured PEI (65 °C) |
-| Plate | 1: front, back and wheel side by side (one object, 17 colour parts) |
-| Print | **1 h 04 min, 29.1 g, 7 filament swaps (~2.6 g purge)**, no slicer warnings |
-| Model grams per slot | ink 1.45, blood 0.27, gold 0.28, paper 28.96 (solid volume; 15 % infill makes the real total lower) |
+| Inlay (shared) | **face-down**, 0.4 mm (4 layers at 0.10 mm) of colour on front, back and wheels; everything above is white |
+| Back (shared) | black edge plus a gold crescent and bat, inlaid in the same layers |
+| Material / printer | Bambu PLA Basic, A1 **0.2 mm nozzle**, 0.10mm Standard @BBL A1 0.2 nozzle + Arachne, Textured PEI (65 °C) |
+| Plate | 1: front, back and both wheels side by side (one object, 19 colour parts), 194 × 88 mm |
+| Print | **v4 not sliced yet** (built in a cloud session without Bambu Studio; see Rebuild). v2 on the 0.4 nozzle: 1 h 04 min, 29.1 g, 7 swaps |
+| Model grams per slot | ink 1.50, blood 0.29, gold 0.28, paper 33.21 (solid volume; 15 % infill makes the real total lower) |
 
-### Mechanism
-Same sandwich as `models/vampire-dial`, scaled up:
-- **Back**: 0.6 mm plate + 2.2 mm spacer with the wheel cavity (0.4 mm radial clearance), a Ø6 axle pin, 6 Ø2
-  alignment pegs, and the detent arm on top of the wheel, running left. The arm stands free over a slot through the
-  plate. The pocket around it doubles as an over-travel stop.
-- **Wheel**: a flat 1.8 mm white disc with the digits inlaid black in its face (printed face-down).
-- **Front**: printed face-down: the 0.4 mm colour inlay, white above it, the window cut through, sockets underneath.
+### Mechanism (v4)
+- **Back**: 0.6 mm plate + 2.2 mm spacer with the two wheel cavities (0.4 mm radial clearance), two Ø6 axle pins
+  (0.6 mm taller than the spacer), and the tongue on the spacer's top face. No detent: each wheel's friction holds its value.
+- **Wheels** (power, toughness): flat 1.8 mm white discs with the digits inlaid black in their faces (printed
+  face-down); hubs Ø6.8.
+- **Front**: printed face-down: the 0.4 mm colour inlay, white above it, the window cut through, and the groove and
+  pin socket (0.8 mm deep) in its underside.
 
 ### Assembly
 1. Peel the three parts off the plate. The front and wheel come off face-down; turn them over. Clean any elephant
-   foot off the wheel's hole and rim.
-2. Hold the wheel digits up with "1/1" at the bottom, so a notch sits at the top under the nub. Lower it onto
-   the pin. If the nub catches, lift the arm's tip outward by about 0.5 mm; the pocket wall stops it before it over-bends.
-3. Check the wheel clicks through all 9 values, then return it to 1/1.
-4. Lay the front on so the pegs and pin enter its sockets. Put a drop of **CA on the 6 pegs only**, then press flat.
+   foot off the wheel's hole and rim, and off the tongue.
+2. Drop each wheel onto its pin, digits up: **power** (its digits run clockwise) on the left pin, **toughness** on the
+   right (the parts are labelled by file name; on the plate the power wheel is the lower one). With no clicks, centre
+   each value in its window by eye once the front is on.
+3. Dry-fit the front: the tongue should drop into the groove all the way round, with the pin in its socket.
+4. Run a thin line of **CA in the groove only** (none on the pin or near the wheel) and press the front flat while it sets.
 
 ## Decisions & interpretations
+### v4: separate power and toughness wheels, 70.5 mm card
+Asked: "show power and toughness as separate values, on the left and right bottom corners with their own wheels;
+font size maintained or enlarged; the wheels can be exposed on the left and right sides".
+- **Two wheels, 1–9 each** (asked). Power is bottom-left with its rim out of the left edge, toughness bottom-right
+  out of the right edge. Each window sits straight below its wheel's centre. Pushing either rim **up** counts up, so
+  the power wheel's digits run the other way round.
+- **Digits kept at 8 mm** (Bahnschrift Bold Condensed, single digits from the same outlines as v3's "N/N"). To hide
+  both neighbours, a single 8 mm digit needs a digit ring of r 11.2 (searched), so each wheel is Ø36.8. Two of those
+  don't fit side by side in 63 mm. **The card is widened to 70.5 mm** (chosen over a thicker stacked-wheel card,
+  6 mm rims, or smaller digits): 4R + 2·clearance + 1 mm wall − 2·2.5 mm protrusion = 70.4 mm. The card is
+  no longer standard token or sleeve size; height, thickness, frame and type are unchanged.
+- **Footer**: two ruled windows (5.9 × 9.3 mm) in the corners. Between them, a **bat whose spread wings form the "/"**
+  (asked: "a bat shaped /"). It's a dedicated shape (`slash_bat_shape()`): straight leading edges, three
+  pointed fingers and scallops per wing, the body and ears square to the wing line, all turned 62°. Rotating the
+  ordinary bat read as a leaf.
+- **Art refit to the wider plate**: left-side elements stay put, right-side ones (towers, streaks, lancets) move with
+  the right edge (`xr()`), and the bats round the moon move with the centre (`xc()`). The knight and moon follow the
+  centre. The cloak widens progressively (`cloak_widen()`): unchanged under the pauldrons, ×1.126 at the plate's
+  bottom, so it still fills the corners without a sliver above the shoulders.
+- **Joint**: the tongue now runs across the top and down both sides to the wheels (168 mm), plus an 18 mm run along
+  the bottom edge between the wheels; the bottom corners belong to the wheels. Two pins in two 0.8 mm sockets.
+- `assembly_check()` checks both wheels on the parts as printed: each value centred in its own window, the pins on the
+  hub centres with 0.4 mm clearance, the tongue and pins 0.15 mm inside their grooves.
+
+### v3: no detent, tongue and groove, looser hub, 0.2 mm nozzle
+Asked: "remake back piece that presses into the gears of the wheel; make connection between pieces use tongue and
+groove connections instead of the single dots, along most of the top edges and bottom corner; make the middle area
+of the wheel have more tolerance so it fits less snugly into the bottom half; update anything needed to print with
+a 0.2 mm nozzle".
+- **Detent removed** (clarified: it "adds complexity and a failing point to a non problem"; the wheel's friction in
+  the case already holds a value). The back is now a plain plate + spacer around the wheel cavity: no arm, no pocket,
+  and no slot through the back plate. The 9 V notches stay as the thumb grip. Without clicks, line the value up
+  in the window by eye.
+- **Tongue and groove** replaces the 6 Ø2 pegs (layout chosen: top U + bottom-left L). A 1.2 × 0.6 mm ridge on the
+  spacer, its centreline 2.0 mm in from the card edge, runs wherever it stays ≥ 1.2 mm from the wheel cavity:
+  one 198 mm run from the bottom edge, up the left side, across the top and down the right side to the wheel, plus
+  a 21 mm L in the bottom-right corner below the wheel's rim. The front's underside has a 1.5 × 0.8 mm groove
+  (0.15 mm per side, 0.2 mm of glue room on top). The pin's socket is 0.8 mm deep too, and the pin is 0.6 mm taller.
+  The front's groove keeps a 1.25 mm outer wall, and 1.2 mm of front stays above it.
+- **Hub clearance 0.25 → 0.4 mm** radial (hole Ø6.8 on the Ø6 pin). Cavity, axial play and the wheel are unchanged.
+- **0.2 mm nozzle** from now on: presets *Bambu Lab A1 0.2 nozzle*, *0.10mm Standard @BBL A1 0.2 nozzle*, *Bambu PLA
+  Basic @BBL A1 0.2 nozzle* (in `slice_args.txt`; also the new `slice_bambu.py` defaults). Every height is a multiple
+  of 0.1 mm. The inlay stays 0.4 mm thick for opacity, so it's now 4 layers: expect about twice the filament swaps
+  and a longer print than v2. The old `initial_layer_speed=30` / `initial_layer_infill_speed=60` overrides are
+  dropped, because they would have sped up the 0.2 preset's slower first layer (16 / 28 mm/s). The art keeps its 0.4 mm
+  line rules (`BEAD` 0.45): they print fine on the 0.2 nozzle, and finer art is now possible but wasn't asked for.
+- `assembly_check()` now checks the fits on the parts as printed: the tongue and pin sit 0.15 mm inside their grooves,
+  the hub has 0.40 mm, and all 9 values are centred in the window.
+- **Fonts**: Georgia and Bahnschrift are Windows fonts. Their outlines are cached in `text_cache.json` (recovered
+  from the v2 STLs; the front art came out unchanged). A build without the fonts uses the cache, and a build with
+  them refreshes it.
+
 ### v2: alt art of vampire-arcana
 - **One frame, two arts.** Everything the cards share lives in `vampire_counter.py`: palette, plates and rules,
   Georgia title, ruled window box with footer bats, back, mechanism, face-down build, sliver/island clean-up and
@@ -120,21 +173,21 @@ Same sandwich as `models/vampire-dial`, scaled up:
   - The V notches are narrower (3.7 mm at the rim) than the old scallops (7.7 mm). Their sharper edges still give a
     thumb something to catch.
 - Tunables: `DIGIT_H` (every 0.5 mm of digit height grows the wheel radius ~1.4 mm), `PIN_CLR`, `WHEEL_CLR`, `AX_CLR`.
-  Detent: `PRELOAD` (holding force), `NOTCH_FLANK` (steeper = firmer centring and a harder click), `NOTCH_DEPTH`,
-  and `ARM_T_TIP` / `ARM_T_ROOT` / `ARM_L` (stiffness against strain; the build asserts strain stays under `MAX_STRAIN`).
+  Joint (v3): `TONGUE_W` / `TONGUE_H`, `TONGUE_CLR` (fit), `TONGUE_INSET`, `TONGUE_GAP` (where it breaks at the
+  wheel), `TONGUE_MIN_LEN`. (The v1.2 detent notes above are history; v3 removed the detent.)
 
 ## Files (`out/`)
-- `vampire_counter_A1.3mf`: the sliced A1 project, 4 AMS slots. Open it in Bambu Studio, map slots 1–4 to black,
-  red, copper and white, and print from there.
-- `parts/`: the 17 colour-part STLs (`<front|back|wheel>_<n>_<colour>.stl`, mm, mirrored and laid out as printed)
+- `vampire_counter_A1.3mf`: **removed in v3** (it held the v2 parts on the 0.4 nozzle). Re-slice on the Windows PC
+  (see Rebuild), open it in Bambu Studio, map slots 1–4 to black, red, copper and white, and print from there.
+- `parts/`: the 19 colour-part STLs (`<front|back|power|toughness>_<n>_<colour>.stl`, mm, mirrored and laid out as printed)
   plus `slice_args.txt`.
-- `counter_preview.png`: the face at 1/1, 5/5 and 9/9, a nozzle simulation, and the back.
-- `parts_preview.png`: the back (spacer, detent, pin, pegs) and the wheel.
+- `counter_preview.png`: the face at 1/1, 3/5 and 9/9, a nozzle simulation, and the back.
+- `parts_preview.png`: the back (spacer, tongue, pins), the front's underside (groove, pin sockets), a joint section and both wheels.
 - No STEP: the parts are shapely polygons extruded into meshes (as in vampire-dial).
 
 ## Printing
 - Use a **clean** Textured PEI plate (wash it with dish soap). The whole face is the first layer.
-- If strokes come out ragged, slow the first layer further (`initial_layer_speed=20`).
+- The 0.2 nozzle preset already runs the first layer slowly (16 mm/s walls). Leave it there.
 
 ## Rebuild
 ```powershell
@@ -161,3 +214,10 @@ Uses helpers from `models/vampire-token` (extrusion) and `models/vampire-dial` (
   of −100° (0.6 of a 40° step). Only the back art is mirrored now, and a new `assembly_check()` rebuilds the parts
   as printed (flipped, wheel on the printed pin) and asserts every value is centred with the nub seated.
   1 h 04 min, 29.0 g, 7 swaps. **Reprint the back** (front and wheel are unchanged).
+- 2026-11-17: v3, detent removed (the wheel's friction holds it); the 6 pegs are replaced by a tongue and groove
+  round the edge (219 mm); hub clearance 0.25 → 0.4 mm; switched to the **0.2 mm nozzle** (0.10 mm layers, 0.2
+  nozzle presets); fonts cached in `text_cache.json`. Front art unchanged. Not yet sliced: the 3MF must be
+  regenerated on the Windows PC. **Reprint all three parts.**
+- 2026-11-17: v4, power and toughness on **separate wheels** (1–9 each, 8 mm digits), rims out of the left and right
+  edges, windows in the footer's corners with a bat-shaped "/" between them; card widened to **70.5 mm**; scene
+  re-anchored to the wider plate. Not yet sliced. **Reprint all four parts.**
