@@ -16,40 +16,66 @@ same frame, type, dial footer, print method and back, with only the art plate di
 ## Spec (as built)
 | Parameter | Value |
 |---|---|
-| Card | 63 × 88 mm (standard token size), 3 mm corners, **4.8 mm** thick assembled (back 2.8 + front 2.0; the tongue sits in the front's groove) |
-| Frame (shared with arcana) | black card edge 1.8 mm, black rules 1.2 mm; white plates: title 12.4 mm, art 53.4 mm, footer 16.2 mm |
-| Title (shared) | "VAMPIRE", **Georgia Regular, 6.0 mm caps**, black on the white title plate, 45.9 mm long in a 59.4 mm plate |
-| Dial | one wheel, 9 positions × 40°: **1/1 … 9/9**, held by friction (no detent since v3) |
-| Digits | Bahnschrift Bold Condensed, **8.0 mm** tall, slash cut to digit height, black inlaid flat in the white wheel |
-| Window (shared) | 13.7 × 9.3 mm at (32.4, 10.2), in a ruled box (0.7 white mat + 0.7 black rule) in the footer, a bat either side |
-| Wheel | Ø 58.9 mm, digit ring r 21, 9 **V notches** as a grip (1.3 deep, 35° flanks, 0.6 mm rounded edges); the rim pokes **2.5 mm** out of the right edge; hub Ø6.8 on a Ø6 pin (**0.4 mm** radial clearance) |
-| Joint | **tongue and groove**: 1.2 × 0.6 mm ridge 2 mm in from the edge (219 mm in 2 runs: bottom-left, left, top, right down to the wheel; a bottom-right L), in a 1.5 × 0.8 mm groove under the front; the pin in a 0.8 mm socket |
-| Turning | push the rim **up** to count up |
+| Card | **70.5** × 88 mm (v4: widened from the 63 mm token size so two wheels fit), 3 mm corners, **4.8 mm** thick assembled (back 2.8 + front 2.0; the tongue sits in the front's groove) |
+| Frame (shared with arcana) | black card edge 1.8 mm, black rules 1.2 mm; white plates: title 12.4 mm, art 66.9 × 53.4 mm, footer 16.2 mm |
+| Title (shared) | "VAMPIRE", **Georgia Regular, 6.0 mm caps**, black on the white title plate, 45.9 mm long in a 66.9 mm plate (59.4 before v4) |
+| Dial | **two wheels**: power (bottom-left, rim out of the left edge) and toughness (bottom-right, rim out of the right edge), 9 positions × 40°, **1–9 each**, held by friction (no detent since v3) |
+| Digits | Bahnschrift Bold Condensed, **8.0 mm** tall, one per window, black inlaid flat in the white wheels |
+| Windows (shared) | 5.9 × 9.3 mm at (15.9, 8.6) and (54.6, 8.6), each in a ruled box (0.7 white mat + 0.7 black rule) in the footer's corners; between them a **bat shaped as the "/"** |
+| Wheels | Ø 36.8 mm each, digit ring r 11.2, 9 **V notches** as a grip (1.3 deep, 35° flanks, 0.6 mm rounded edges); each rim pokes **2.5 mm** out of its side; 1.07 mm of spacer between the cavities; hubs Ø6.8 on Ø6 pins (**0.4 mm** radial clearance) |
+| Joint | **tongue and groove**: 1.2 × 0.6 mm ridge 2 mm in from the edge (186 mm in 2 runs: down both sides to the wheels and across the top; along the bottom between the wheels), in a 1.5 × 0.8 mm groove under the front; the pins in 0.8 mm sockets |
+| Turning | push either rim **up** to count up |
 | Art (this card's own) | flat-colour vector scene: an elder vampire knight (long white hair, pointed beard, layered pauldrons with copper edges, gorget, red cloak, sword planted point-down) before a **blood moon**, with copper cloud streaks, bats and a black castle with red lancet windows |
 | Colours (shared) | 1 ink `#1E1A18`, 2 blood `#9B1B1E`, 3 gold `#B87333` (copper), 4 paper `#F4F1EA` (white): the same spools as v1 |
-| Inlay (shared) | **face-down**, 0.4 mm (4 layers at 0.10 mm) of colour on front, back and wheel; everything above is white |
+| Inlay (shared) | **face-down**, 0.4 mm (4 layers at 0.10 mm) of colour on front, back and wheels; everything above is white |
 | Back (shared) | black edge plus a gold crescent and bat, inlaid in the same layers |
 | Material / printer | Bambu PLA Basic, A1 **0.2 mm nozzle**, 0.10mm Standard @BBL A1 0.2 nozzle + Arachne, Textured PEI (65 °C) |
-| Plate | 1: front, back and wheel side by side (one object, 16 colour parts) |
-| Print | **v3 not sliced yet** (built in a cloud session without Bambu Studio; see Rebuild). v2 on the 0.4 nozzle: 1 h 04 min, 29.1 g, 7 swaps |
-| Model grams per slot | ink 1.46, blood 0.27, gold 0.28, paper 29.02 (solid volume; 15 % infill makes the real total lower) |
+| Plate | 1: front, back and both wheels side by side (one object, 19 colour parts), 194 × 88 mm |
+| Print | **v4 not sliced yet** (built in a cloud session without Bambu Studio; see Rebuild). v2 on the 0.4 nozzle: 1 h 04 min, 29.1 g, 7 swaps |
+| Model grams per slot | ink 1.50, blood 0.29, gold 0.28, paper 33.21 (solid volume; 15 % infill makes the real total lower) |
 
-### Mechanism (v3)
-- **Back**: 0.6 mm plate + 2.2 mm spacer with the wheel cavity (0.4 mm radial clearance), a Ø6 axle pin (0.6 mm
-  taller than the spacer), and the tongue on the spacer's top face. No detent: the wheel's friction holds a value.
-- **Wheel**: a flat 1.8 mm white disc with the digits inlaid black in its face (printed face-down); hub Ø6.8.
+### Mechanism (v4)
+- **Back**: 0.6 mm plate + 2.2 mm spacer with the two wheel cavities (0.4 mm radial clearance), two Ø6 axle pins
+  (0.6 mm taller than the spacer), and the tongue on the spacer's top face. No detent: each wheel's friction holds its value.
+- **Wheels** (power, toughness): flat 1.8 mm white discs with the digits inlaid black in their faces (printed
+  face-down); hubs Ø6.8.
 - **Front**: printed face-down: the 0.4 mm colour inlay, white above it, the window cut through, and the groove and
   pin socket (0.8 mm deep) in its underside.
 
 ### Assembly
 1. Peel the three parts off the plate. The front and wheel come off face-down; turn them over. Clean any elephant
    foot off the wheel's hole and rim, and off the tongue.
-2. Drop the wheel onto the pin, digits up. Turn it to the value you want; with no clicks, centre it in the window by eye
-   once the front is on.
+2. Drop each wheel onto its pin, digits up: **power** (its digits run clockwise) on the left pin, **toughness** on the
+   right (the parts are labelled by file name; on the plate the power wheel is the lower one). With no clicks, centre
+   each value in its window by eye once the front is on.
 3. Dry-fit the front: the tongue should drop into the groove all the way round, with the pin in its socket.
 4. Run a thin line of **CA in the groove only** (none on the pin or near the wheel) and press the front flat while it sets.
 
 ## Decisions & interpretations
+### v4: separate power and toughness wheels, 70.5 mm card
+Asked: "show power and toughness as separate values, on the left and right bottom corners with their own wheels;
+font size maintained or enlarged; the wheels can be exposed on the left and right sides".
+- **Two wheels, 1–9 each** (asked). Power is bottom-left with its rim out of the left edge, toughness bottom-right
+  out of the right edge. Each window sits straight below its wheel's centre. Pushing either rim **up** counts up, so
+  the power wheel's digits run the other way round.
+- **Digits kept at 8 mm** (Bahnschrift Bold Condensed, single digits from the same outlines as v3's "N/N"). To hide
+  both neighbours, a single 8 mm digit needs a digit ring of r 11.2 (searched), so each wheel is Ø36.8. Two of those
+  don't fit side by side in 63 mm. **The card is widened to 70.5 mm** (chosen over a thicker stacked-wheel card,
+  6 mm rims, or smaller digits): 4R + 2·clearance + 1 mm wall − 2·2.5 mm protrusion = 70.4 mm. The card is
+  no longer standard token or sleeve size; height, thickness, frame and type are unchanged.
+- **Footer**: two ruled windows (5.9 × 9.3 mm) in the corners. Between them, a **bat whose spread wings form the "/"**
+  (asked: "a bat shaped /"). It's a dedicated shape (`slash_bat_shape()`): straight leading edges, three
+  pointed fingers and scallops per wing, the body and ears square to the wing line, all turned 62°. Rotating the
+  ordinary bat read as a leaf.
+- **Art refit to the wider plate**: left-side elements stay put, right-side ones (towers, streaks, lancets) move with
+  the right edge (`xr()`), and the bats round the moon move with the centre (`xc()`). The knight and moon follow the
+  centre. The cloak widens progressively (`cloak_widen()`): unchanged under the pauldrons, ×1.126 at the plate's
+  bottom, so it still fills the corners without a sliver above the shoulders.
+- **Joint**: the tongue now runs across the top and down both sides to the wheels (168 mm), plus an 18 mm run along
+  the bottom edge between the wheels; the bottom corners belong to the wheels. Two pins in two 0.8 mm sockets.
+- `assembly_check()` checks both wheels on the parts as printed: each value centred in its own window, the pins on the
+  hub centres with 0.4 mm clearance, the tongue and pins 0.15 mm inside their grooves.
+
 ### v3: no detent, tongue and groove, looser hub, 0.2 mm nozzle
 Asked: "remake back piece that presses into the gears of the wheel; make connection between pieces use tongue and
 groove connections instead of the single dots, along most of the top edges and bottom corner; make the middle area
@@ -153,10 +179,10 @@ a 0.2 mm nozzle".
 ## Files (`out/`)
 - `vampire_counter_A1.3mf`: **removed in v3** (it held the v2 parts on the 0.4 nozzle). Re-slice on the Windows PC
   (see Rebuild), open it in Bambu Studio, map slots 1–4 to black, red, copper and white, and print from there.
-- `parts/`: the 16 colour-part STLs (`<front|back|wheel>_<n>_<colour>.stl`, mm, mirrored and laid out as printed)
+- `parts/`: the 19 colour-part STLs (`<front|back|power|toughness>_<n>_<colour>.stl`, mm, mirrored and laid out as printed)
   plus `slice_args.txt`.
-- `counter_preview.png`: the face at 1/1, 5/5 and 9/9, a nozzle simulation, and the back.
-- `parts_preview.png`: the back (spacer, tongue, pin), the front's underside (groove, pin socket), a joint section and the wheel.
+- `counter_preview.png`: the face at 1/1, 3/5 and 9/9, a nozzle simulation, and the back.
+- `parts_preview.png`: the back (spacer, tongue, pins), the front's underside (groove, pin sockets), a joint section and both wheels.
 - No STEP: the parts are shapely polygons extruded into meshes (as in vampire-dial).
 
 ## Printing
@@ -192,3 +218,6 @@ Uses helpers from `models/vampire-token` (extrusion) and `models/vampire-dial` (
   round the edge (219 mm); hub clearance 0.25 → 0.4 mm; switched to the **0.2 mm nozzle** (0.10 mm layers, 0.2
   nozzle presets); fonts cached in `text_cache.json`. Front art unchanged. Not yet sliced: the 3MF must be
   regenerated on the Windows PC. **Reprint all three parts.**
+- 2026-11-17: v4, power and toughness on **separate wheels** (1–9 each, 8 mm digits), rims out of the left and right
+  edges, windows in the footer's corners with a bat-shaped "/" between them; card widened to **70.5 mm**; scene
+  re-anchored to the wider plate. Not yet sliced. **Reprint all four parts.**

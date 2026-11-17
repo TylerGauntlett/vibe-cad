@@ -3,8 +3,8 @@
 Vampire arcana token: the vampire-counter knight redrawn in the style of a French woodcut tarot card
 (after the look of MakerWorld's "Token Arcana" set, not its art). Black line art with hatched shading
 on white paper, one gold accent (the moon and the sword's hilt) and red used only for blood. The name
-sits in a white title plate with room around it; the 1/1 ... 9/9 dial shows through a framed window
-in a matching footer plate. Simple borders: a black card edge and black rules between the plates.
+sits in a white title plate with room around it; power and toughness (1-9 each, on two wheels) show
+through framed windows in the corners of a matching footer plate, a bat-shaped "/" between them. Simple borders: a black card edge and black rules between the plates.
 
 Spec: see README.md in this folder.
 
@@ -16,16 +16,17 @@ inlay layers, however much ink the art has.
 The frame, mechanism and build are shared with models/vampire-counter (imported from it), which is
 the same card with colour-fill alt art: plates, rules, title, footer window box and back come from
 `vc.frame()` / `vc.finish()` / `vc.back_regions()`, the plate from `vc.write_plate()`. This file is
-only the woodcut scene. The mechanism is the vampire-counter v3 one: one wheel (9 V notches as a
-grip, black digits inlaid flat in its white face) on an axle pin, held by friction (no detent), and a
-tongue-and-groove joint between front and back.
+only the woodcut scene. The mechanism is the vampire-counter v4 one: power and toughness wheels (9 V
+notches as a grip, black digits inlaid flat in their white faces) on axle pins, rims out of the left
+and right edges, held by friction (no detent), and a tongue-and-groove joint between front and back.
+The card is 70.5 mm wide (v3) so the two wheels fit; the scene is re-anchored with vc.xr / vc.xc.
 
 Run (from the repo root):
     .venv\\Scripts\\python.exe models\\vampire-arcana\\vampire_arcana.py
 Outputs (millimetres) go to models\\vampire-arcana\\out\\
     parts/<object>_<n>_<colour>.stl   parts laid out as on the plate; load as ONE object (--assemble)
     parts/slice_args.txt              the matching slice_bambu.py arguments
-    arcana_preview.png                the face at 1/1, 5/5, 9/9, a nozzle simulation, and the back
+    arcana_preview.png                the face at 1/1, 3/5, 9/9, a nozzle simulation, and the back
     arcana_detail.png                 the head and the window at print scale (bead-sized features)
 """
 import importlib.util
@@ -59,6 +60,7 @@ spline, taper, sym, sym_pts, disk = vc.spline, vc.taper, vc.sym, vc.sym_pts, vc.
 PALETTE = vc.PALETTE
 INK, BLOOD, GOLD, PAPER = vc.INK, vc.BLOOD, vc.GOLD, vc.PAPER
 CARD_W, CARD_H, CX = vc.CARD_W, vc.CARD_H, vc.CX
+xr, xc = vc.xr, vc.xc            # right-anchored / centred x of the 63 mm scene on the widened card
 ART = vc.ART
 
 # Line weights. A 0.4 nozzle lays a ~0.45-0.5 mm bead: every black line is at least one bead and
@@ -205,10 +207,10 @@ def knight(cv, clip):
     # cloak: a solid black mass flaring to the frame's bottom corners, with white fold lines
     cloak = spline(sym_pts([(0, -7.0), (-10.0, -8.6), (-18.5, -12.2), (-24.5, -18.5), (-27.5, -26.0),
                             (-29.5, -36.0), (0, -36.0)]), n=400)
-    ink(cloak)
+    ink(vc.cloak_widen(cloak))                                   # widened with the art plate (v2, 70.5 mm card)
     for f in ([(-21.8, -19.6), (-23.6, -25.0), (-24.6, -33.0)], [(-18.6, -21.5), (-19.6, -27.0), (-20.2, -33.0)],
               [(-25.4, -23.5), (-27.0, -29.5), (-27.9, -35.0)]):
-        line(f, 0.5, 0.9, PAPER)
+        ink(S(vc.cloak_widen(taper(f, 0.5, 0.9))), PAPER)
 
     # breastplate: outlined, shaded down both flanks, fauld lames across the bottom
     chest = spline(sym_pts([(0, -11.5), (-7.8, -12.2), (-10.4, -17.0), (-11.6, -25.0), (-12.0, -36.0), (0, -36.0)]))
@@ -303,13 +305,13 @@ def front_regions(card):
     sky_lines(cv, clip)
     moon(cv, clip)
     cloud(cv, clip, [(2.5, 67.5, 2.8), (7.0, 69.5, 3.4), (12.0, 68.2, 2.6), (15.6, 66.6, 1.8)], 20)
-    cloud(cv, clip, [(47.4, 68.0, 1.8), (51.0, 69.8, 2.7), (56.0, 70.2, 3.5), (61.0, 68.6, 2.8)], 21)
-    bats(cv, clip, [((8.6, 56.0), 8.5, 10.0), ((54.6, 58.4), 7.5, -8.0)])
-    bats(cv, clip, [((40.0, 60.2), 5.6, -12.0)], halo=0.0)           # crossing the moon
+    cloud(cv, clip, [(xr(47.4), 68.0, 1.8), (xr(51.0), 69.8, 2.7), (xr(56.0), 70.2, 3.5), (xr(61.0), 68.6, 2.8)], 21)
+    bats(cv, clip, [((8.6, 56.0), 8.5, 10.0), ((xr(54.6), 58.4), 7.5, -8.0)])
+    bats(cv, clip, [((xc(40.0), 60.2), 5.6, -12.0)], halo=0.0)       # crossing the moon
     tower(cv, clip, 2.6, 9.2, 39.5, 9.0, windows=[(5.9, 33.5, 1.5, 3.4)])
     tower(cv, clip, 9.2, 13.6, 34.5, 6.0, windows=[(11.4, 29.6, 1.3, 2.8)])
-    tower(cv, clip, 53.8, 60.4, 41.5, 9.5, windows=[(57.1, 35.4, 1.5, 3.4)])
-    tower(cv, clip, 49.4, 53.8, 36.0, 6.5, windows=[(51.6, 31.0, 1.3, 2.8)])
+    tower(cv, clip, xr(53.8), xr(60.4), 41.5, 9.5, windows=[(xr(57.1), 35.4, 1.5, 3.4)])
+    tower(cv, clip, xr(49.4), xr(53.8), 36.0, 6.5, windows=[(xr(51.6), 31.0, 1.3, 2.8)])
     knight(cv, clip)
 
     return vc.finish(cv, card)
@@ -317,13 +319,13 @@ def front_regions(card):
 
 # ---- previews -----------------------------------------------------------------------------
 
-def detail(regions, wh, path):
+def detail(regions, whs, path):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     fig_, axes = plt.subplots(1, 2, figsize=(15, 8))
     for ax, sim in zip(axes, (False, True)):
-        vc.draw_face(ax, regions, wh, 3, sim)
+        vc.draw_face(ax, regions, whs, (3, 3), sim)
         ax.set_xlim(HEAD[0] - 16, HEAD[0] + 16); ax.set_ylim(HEAD[1] - 22, HEAD[1] + 14)
         ax.set_title("head, sword, hilt" + (" (nozzle sim)" if sim else ""), fontsize=10)
     plt.tight_layout()
@@ -341,8 +343,8 @@ def main():
     back = vc.back_regions(card) if vc.BACK_ART else         {PAPER: card, INK: Polygon(), BLOOD: Polygon(), GOLD: Polygon()}
     vc.report(card, regions, back)
     vc.write_plate(m, regions, back, PARTS)
-    vc.preview(regions, back, m["wh"], OUT / "arcana_preview.png")
-    detail(regions, m["wh"], OUT / "arcana_detail.png")
+    vc.preview(regions, back, m["whs"], OUT / "arcana_preview.png")
+    detail(regions, m["whs"], OUT / "arcana_detail.png")
 
 
 if __name__ == "__main__":

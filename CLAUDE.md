@@ -147,6 +147,9 @@ build with it refreshes the cache. Check that a fontless rebuild leaves the art 
 - Traced raster art doesn't survive a 0.4 mm nozzle at card size. Draw the scene as vector shapes (painter's algorithm
   over 4 regions that tile the card) with outlines ≥ 0.7 mm, and absorb any island < 1 mm² into its neighbour.
 - Dial digits: to hide both neighbours, a value W mm wide on a 9-position ring needs a ring radius of about 1.75·W.
+  The user wants power and toughness on **separate wheels** (one digit each, rims out of the left and right edges).
+  A single 8 mm Bahnschrift digit needs r 11.2 → a Ø36.8 wheel, so two need a 70.5 mm card (vampire-counter v4).
+  Pushing a rim up counts up, so the left wheel's digits run the other way round.
   8 mm condensed "N/N" (12 mm wide) → r 21 → a Ø59 wheel, the most a 63 mm card can hold. Scale the slash to the digit height.
 - Woodcut/engraved style (see models/vampire-arcana): black line art on white plus ONE accent reads far clearer than flat
   4-colour fills. On a 0.4 nozzle, strokes of 0.55 at 1.25 pitch, outlines 0.7. Print it **face-down as a 0.4 mm flat inlay**:
@@ -185,6 +188,6 @@ depth-sorting artifacts, not holes. Trust `open_edges`. View the PNG with the Re
 |---|---|---|
 | Wave jewelry-box insert (11.4×4.9×1", 5 waves + end ramps, 2 dovetailed halves) | `models/wave-insert/` | v4 sliced for A1 (1 plate) |
 | Vampire token card, 4-colour AMS (63×88 mm; flat-light + relief layouts) | `models/vampire-token/` | v2 sliced for A1 |
-| Vampire token with internal 1/1–9/9 dial wheel (63×92×4.8 mm, 3 parts, 4-colour relief, tongue-and-groove) | `models/vampire-dial/` | v2 built for 0.2 nozzle, not sliced |
-| Vampire counter: flat-colour alt art of vampire-arcana (same frame, title, dial, back); hosts the shared frame + mechanism | `models/vampire-counter/` | v3 built for 0.2 nozzle, not sliced |
-| Vampire arcana: woodcut-tarot restyle of the counter (ink on white, gold moon, blood accents), face-down flat inlay; imports the counter's frame | `models/vampire-arcana/` | v2 built for 0.2 nozzle, not sliced |
+| Vampire token with separate power + toughness wheels, 1–9 each (63×92×4.8 mm, 4 parts, 4-colour relief, tongue-and-groove) | `models/vampire-dial/` | v3 built for 0.2 nozzle, not sliced |
+| Vampire counter: flat-colour alt art of vampire-arcana (same frame, title, P/T wheels, back; 70.5×88 mm); hosts the shared frame + mechanism | `models/vampire-counter/` | v4 built for 0.2 nozzle, not sliced |
+| Vampire arcana: woodcut-tarot restyle of the counter (ink on white, gold moon, blood accents), face-down flat inlay; imports the counter's frame | `models/vampire-arcana/` | v3 built for 0.2 nozzle, not sliced |

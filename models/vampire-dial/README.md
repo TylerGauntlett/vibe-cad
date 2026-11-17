@@ -12,20 +12,20 @@ existing 1/1 but that can change if needed."
 |---|---|
 | Card | 63 × **92** mm (art 63 × 88 + 4 mm extra black border at the bottom), 3 mm corners |
 | Thickness | **4.8 mm** assembled: back 2.8 (0.6 plate + 2.2 wheel cavity) + front 2.0 (the v3 relief) |
-| Dial | one wheel, 9 positions × 40°: **1/1 … 9/9** (power = toughness), held by friction (no detent since v2) |
-| Window | 7.4 × 3.8 mm, centred in the art's P/T box (same place as the printed 1/1) |
-| Digits | DejaVu Sans Bold +0.05 mm bold, 3.0 mm tall, black tops, raised 0.8 mm in a cream channel |
-| Wheel | Ø 33 mm, 9 thumb scallops; the rim protrudes **2.4 mm** (valleys 1.2 mm) past the right edge; hub Ø5.8 on a Ø5 pin (**0.4 mm** radial clearance) |
-| Joint | **tongue and groove**: 1.2 × 0.6 mm ridge 2 mm in from the edge, one 241 mm run from the bottom edge round the left, top and right side to the wheel, in a 1.5 × 0.8 mm groove under the front |
-| Turning | push the rim **up** to count up, down to count down |
+| Dial | **two wheels** (v3): power (rim out of the left edge) and toughness (rim out of the right edge), 9 positions × 40°, **1–9 each**, held by friction (no detent since v2) |
+| Windows | 4.0 × 4.2 mm each: toughness centred where the art's P/T box was (54.2, 8.6), power its mirror image (8.8, 8.6); each in its own vector box (tan rim, black outline) hanging under an end of the type line; the art's old P/T box is painted out |
+| Digits | DejaVu Sans Bold +0.05 mm bold, **3.4 mm** tall (v1's digits inside "N/N" were 2.66 mm), black tops, raised 0.8 mm in a cream channel |
+| Wheels | Ø 23 mm each, digit ring r 6.85, 9 thumb scallops; each rim protrudes **2.3 mm** (valleys 1.1 mm) past its side; hubs Ø5.8 on Ø5 pins (**0.4 mm** radial clearance) |
+| Joint | **tongue and groove**: 1.2 × 0.6 mm ridge 2 mm in from the edge (184 mm down both sides to the wheels and across the top, 39 mm along the bottom between the wheels), in a 1.5 × 0.8 mm groove under the front |
+| Turning | push either rim **up** to count up, down to count down |
 | Colours | the same 4 AMS slots as the token: 1 black `#241B16`, 2 red `#8E1D19`, 3 tan `#B08551`, 4 cream `#F0CB9A` |
 | Material / printer | Bambu PLA Basic, A1 **0.2 mm nozzle**, 0.10mm Standard @BBL A1 0.2 nozzle + Arachne walls (`wall_transition_angle` 30, `wall_transition_filter_deviation` 50%, `min_bead_width` 50%, `wall_transition_length` 50%), Textured PEI (65 °C) |
-| Plates | 1: front, back and wheel side by side (one object, 15 colour parts) |
+| Plates | 1: front, back and both wheels side by side (one object, 19 colour parts) |
 | Art | simplified for a 0.4 mm nozzle: every colour ≥ 0.5 mm wide, no islands < 1 mm² (face: 0.45 mm / 0.4 mm²); set symbol thickened 0.1 mm per side; the 3 framed boxes redrawn with a uniform 0.6 mm tan rim + 0.5 mm black outline |
 | Title | re-set as vector text: Cambria Bold (+0.1 mm bold, +0.35 mm spacing), V 4.2 mm + small caps 3.5 mm (art: 3.2 / 2.7) |
 | Type line | re-set as vector text, Bahnschrift SemiBold Condensed (+0.04 mm bold, +0.45 mm letter spacing), 2.7 mm cap height |
-| Print | **v2 not sliced yet** (built in a cloud session without Bambu Studio; see Rebuild). Still 3 swaps by construction (one filament per layer). v1.7 on the 0.4 nozzle: 56 min, 25.9 g |
-| Model grams per slot | black 9.4, red 4.8, tan 2.6, cream 14.5 (solid volume; the 15 % infill makes the real total lower) |
+| Print | **v3 not sliced yet** (built in a cloud session without Bambu Studio; see Rebuild). Still 3 swaps by construction (one filament per layer). v1.7 on the 0.4 nozzle: 56 min, 25.9 g |
+| Model grams per slot | black 9.5, red 4.8, tan 2.6, cream 14.4 (solid volume; the 15 % infill makes the real total lower) |
 
 ### Mechanism (v2)
 ```
@@ -47,12 +47,19 @@ existing 1/1 but that can change if needed."
 
 ### Assembly
 1. Peel the three parts off the plate. Clean any brim or elephant-foot off the wheel's hole, its rim and the tongue.
-2. Drop the wheel onto the back's pin, black side up.
-3. Turn the wheel until "1/1" sits where the window will be (bottom right; its tops face the front's P/T box).
+2. Drop the wheels onto the back's pins, black side up: **power** (its digits run clockwise; the lower wheel on the
+   plate) on the left, **toughness** on the right.
+3. Turn each wheel until "1" sits under its window (straight below its pin).
 4. Dry-fit the front: the tongue drops into the groove all the way round and the pin enters its socket. Then run a thin
    line of **CA in the groove only** (not the pin, and keep glue away from the wheel). Press flat while it sets.
 
 ## Decisions & interpretations
+- **v3 (2026-11-17): separate power and toughness wheels** (asked, for all three spinner cards). Single digits need
+  a much smaller ring than "N/N" (r 6.85 vs 10.75), so two Ø23 wheels fit the 63 mm card easily and the card keeps
+  its size. The digits grow from 2.66 to 3.4 mm. Toughness keeps the art's P/T box position. Power mirrors it at
+  bottom left, under the start of the type line (the art there is black border). The art's traced P/T box (sized for
+  "N/N") is painted back to black, and each window gets a new box sized to it. The rims fillet into the type line's
+  like before. The windows sit nearly straight below the wheel centres, so the rims leave the sides 2.3 mm.
 - **v2 (2026-11-17), ported from vampire-counter v3**: the detent arm is gone (the wheel's friction holds a value,
   and the arm was a failure point), the 4 pegs became a tongue and groove round the edge, the hub got 0.4 mm
   clearance (was 0.25), and the build targets the **0.2 mm nozzle** (0.10 mm layers; every Z band and height is a
@@ -148,9 +155,9 @@ existing 1/1 but that can change if needed."
 
 ## Files (`out/`)
 - `vampire_dial_A1.3mf`: **removed in v2** (it held v1.7 on the 0.4 nozzle). Re-slice on the Windows PC (see Rebuild), open it in Bambu Studio, map slots to your spools, and print from there.
-- `parts/`: the 15 colour-part STLs (`<front|back|wheel>_<n>_<colour>.stl`, mm, laid out as on the plate) + `slice_args.txt`.
+- `parts/`: the 19 colour-part STLs (`<front|back|power|toughness>_<n>_<colour>.stl`) (`<front|back|wheel>_<n>_<colour>.stl`, mm, laid out as on the plate) + `slice_args.txt`.
 - `dial_preview.png`: assembled top view at 1/1, 4/4 and 9/9, plus a window close-up.
-- `parts_preview.png`: back (spacer, tongue, pin), front underside (groove, pin socket), wheel top.
+- `parts_preview.png`: back (spacer, tongue, pins), front underside (groove, pin sockets), both wheels.
 
 ## Rebuild
 ```powershell
@@ -173,3 +180,5 @@ Depends on `models/vampire-token/vampire_token.py` (art pipeline and source imag
 - 2026-11-17: v2, mechanism from vampire-counter v3: no detent, tongue and groove instead of pegs, 0.4 mm hub
   clearance, **0.2 mm nozzle** (0.10 mm layers, 0.2 nozzle presets); fonts cached in `text_cache.json`. Art unchanged.
   Not yet sliced: regenerate the 3MF on the Windows PC. **Reprint all three parts.**
+- 2026-11-17: v3, separate power and toughness wheels (1–9 each, 3.4 mm digits), rims out of the left and right
+  edges, a box per window under the type line's two ends. Card size unchanged. Not yet sliced. **Reprint all four parts.**

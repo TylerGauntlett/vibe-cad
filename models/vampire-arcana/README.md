@@ -16,20 +16,24 @@ What the reference does (13 gallery photos and the description, 2026-11-12):
 ## Spec (as built)
 | Parameter | Value |
 |---|---|
-| Card | 63 × 88 mm, 3 mm corners, **4.8 mm** assembled (back 2.8 + front 2.0), same as vampire-counter |
-| Layout | black card edge 1.8 mm, black rules 1.2 mm; white plates: title 12.4 mm, art 53.4 mm, footer 16.2 mm |
-| Title | "VAMPIRE", **Georgia Regular, 6.0 mm caps**, black on white, 45.9 mm long in a 59.4 mm plate |
+| Card | **70.5** × 88 mm, 3 mm corners, **4.8 mm** assembled (back 2.8 + front 2.0), same as vampire-counter v4 |
+| Layout | black card edge 1.8 mm, black rules 1.2 mm; white plates: title 12.4 mm, art 66.9 × 53.4 mm, footer 16.2 mm |
+| Title | "VAMPIRE", **Georgia Regular, 6.0 mm caps**, black on white, 45.9 mm long in a 66.9 mm plate (59.4 before v3) |
 | Art | original woodcut of the vampire-counter knight: white hair with black strands, a gaunt face with red eyes, outlined armour with engraved shadow hatching, a black cloak with white folds, and a sword with blood running down the fuller. Behind him: a gold moon with 28 rays, an engraved sky, scalloped clouds, bats and castle towers |
-| Dial | the vampire-counter v3 mechanism: 1/1 … 9/9, 8 mm digits, window in a ruled box in the footer, a bat either side; wheel held by friction (no detent), hub 0.4 mm clearance, front joined by a **tongue and groove** round the edge |
+| Dial | the vampire-counter v4 mechanism: **separate power and toughness wheels** (1–9 each, 8 mm digits, rims out of the left and right edges), windows in ruled boxes in the footer's corners with a **bat-shaped "/"** between them; held by friction (no detent), hubs 0.4 mm clearance, front joined by a **tongue and groove** round the edge |
 | Colours | 1 ink `#1E1A18`, 2 blood `#9B1B1E`, 3 gold `#B87333` (copper/gold silk), 4 paper `#F4F1EA` (white) |
 | Inlay | **face-down**, 0.4 mm (4 layers at 0.10 mm) of colour; everything above is paper |
 | Line rules | outlines 0.7, strands and hatching 0.55 at 1.25 pitch (every white gap ≥ 0.7), islands ≥ 1 mm² |
 | Back | black edge plus a gold crescent and bat, inlaid in the same layers (no extra swaps) |
 | Material / printer | Bambu PLA Basic, A1 **0.2 mm nozzle**, 0.10mm Standard @BBL A1 0.2 nozzle + Arachne (vampire-counter `SLICER_SET`), Textured PEI (65 °C) |
-| Plate | 1: front, back and wheel side by side (one object, 16 parts) |
-| Print | **v2 not sliced yet** (built in a cloud session without Bambu Studio; see Rebuild). v1.1 on the 0.4 nozzle: 1 h 06 min, 28.6 g, 6 swaps |
+| Plate | 1: front, back and both wheels side by side (one object, 19 parts) |
+| Print | **v3 not sliced yet** (built in a cloud session without Bambu Studio; see Rebuild). v1.1 on the 0.4 nozzle: 1 h 06 min, 28.6 g, 6 swaps |
 
 ## Decisions & interpretations
+- **v3 (2026-11-17)**: separate power and toughness wheels from vampire-counter v4; the card is 70.5 mm wide. The
+  woodcut is re-anchored to the wider plate: the right-hand cloud, bat and towers move with the right edge, the bat
+  crossing the moon with the centre, and the cloak and its white folds widen progressively below the pauldrons
+  (`vc.cloak_widen()`). The sky lines already run in from both edges. See `models/vampire-counter/README.md` → "v4".
 - **v2 (2026-11-17)**: the shared mechanism changed in vampire-counter v3: the detent is gone, the pegs became a
   tongue and groove, the hub got 0.4 mm clearance, and the build targets the 0.2 mm nozzle. See
   `models/vampire-counter/README.md` → "v3". The woodcut art is unchanged (its STLs match v1.1).
@@ -68,7 +72,8 @@ What the reference does (13 gallery photos and the description, 2026-11-12):
 ## Assembly
 1. Peel the parts off. The front and wheel come off face-down; turn them over.
 2. Clean any elephant foot off the wheel's rim and hole.
-3. Fit the wheel onto the back's pin, digits up. There's no detent: turn to a value and centre it in the window by eye.
+3. Fit the power wheel (the lower one on the plate) on the left pin and the toughness wheel on the right, digits up.
+   There's no detent: turn each to a value and centre it in its window by eye.
 4. Dry-fit the front (the tongue drops into the groove all round), then run a thin line of CA in the groove only and
    press the front on.
 
@@ -76,9 +81,9 @@ What the reference does (13 gallery photos and the description, 2026-11-12):
 
 ## Files (`out/`)
 - `vampire_arcana_A1.3mf`: **removed in v2** (it held v1.1 on the 0.4 nozzle); re-slice on the Windows PC.
-- `parts/`: 16 colour-part STLs (`<front|back|wheel>_<n>_<colour>.stl`, mm, mirrored and laid out as printed)
+- `parts/`: 19 colour-part STLs (`<front|back|wheel>_<n>_<colour>.stl`, mm, mirrored and laid out as printed)
   plus `slice_args.txt`.
-- `arcana_preview.png`: the face at 1/1, 5/5 and 9/9, a nozzle simulation, and the back.
+- `arcana_preview.png`: the face at 1/1, 3/5 and 9/9, a nozzle simulation, and the back.
 - `arcana_detail.png`: the head, hilt and blade at print scale, plain and nozzle-simulated.
 - No STEP: the parts are shapely polygons extruded into meshes, as in vampire-counter.
 
@@ -104,3 +109,5 @@ scene; vampire-counter is the same card with flat-colour alt art.
 - 2026-11-17: v2, shared mechanism update from vampire-counter v3: no detent, tongue and groove instead of pegs,
   0.4 mm hub clearance, **0.2 mm nozzle** (0.10 mm layers). Art unchanged. Not yet sliced: regenerate the 3MF on
   the Windows PC. **Reprint all three parts.**
+- 2026-11-17: v3, separate power and toughness wheels (vampire-counter v4), 70.5 mm card, scene re-anchored.
+  Not yet sliced. **Reprint all four parts.**
