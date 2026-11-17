@@ -180,10 +180,29 @@ a 0.2 mm nozzle".
 - `vampire_counter_A1.3mf`: **removed in v3** (it held the v2 parts on the 0.4 nozzle). Re-slice on the Windows PC
   (see Rebuild), open it in Bambu Studio, map slots 1–4 to black, red, copper and white, and print from there.
 - `parts/`: the 19 colour-part STLs (`<front|back|power|toughness>_<n>_<colour>.stl`, mm, mirrored and laid out as printed)
-  plus `slice_args.txt`.
+  plus `slice_args.txt` (original palette) and `slice_args_<F|G|H|I>.txt` (tan/brown palettes).
 - `counter_preview.png`: the face at 1/1, 3/5 and 9/9, a nozzle simulation, and the back.
+- `palettes_preview.png`, `counter_preview_<F|G|H|I>.png`: the tan/brown palettes (see above).
 - `parts_preview.png`: the back (spacer, tongue, pins), the front's underside (groove, pin sockets), a joint section and both wheels.
 - No STEP: the parts are shapely polygons extruded into meshes (as in vampire-dial).
+
+## Tan/brown palettes (Bambu PLA Matte)
+The art uses four slots (ink, blood, gold, paper). `tools/filaments.py` maps them to the spools on hand. The STLs are
+the same for every palette; only the AMS mapping changes. Palettes that share a spool between two slots merge them into
+one AMS slot.
+
+| Palette | Lines (ink) | Red details (blood) | Moon/accents (gold) | Ground (paper) | Spools | Lines / ground |
+|---|---|---|---|---|---|---|
+| original | Black | Red | Copper | White | 4 | 15.3:1 |
+| F Ivory Sepia | Dark Chocolate | Caramel | Caramel | Ivory White | 3 | 11.6:1 |
+| G Ivory Sepia + Terracotta | Dark Chocolate | Terracotta | Caramel | Ivory White | 4 | 11.6:1 |
+| H Black on Parchment | Charcoal | Caramel | Caramel | Desert Tan | 3 | 15.2:1 |
+| I Black on Parchment + Chocolate | Charcoal | Dark Chocolate | Caramel | Desert Tan | 4 | 15.2:1 |
+
+- Slice a palette with `parts/slice_args_<P>.txt` (it also selects the `Bambu PLA Matte @BBL A1 0.2 nozzle` preset). It hasn't
+  been sliced yet: Bambu Studio is only on the Windows machine.
+- `counter_preview_<P>.png` is the full preview built in palette P (`VAMPIRE_PALETTE=P`, see Rebuild).
+  `palettes_preview.png` puts them side by side (1/1 face and back) with the spools and contrast ratios.
 
 ## Printing
 - Use a **clean** Textured PEI plate (wash it with dish soap). The whole face is the first layer.
@@ -196,6 +215,11 @@ cd models\vampire-counter\out\parts
 ..\..\..\..\.venv\Scripts\python.exe ..\..\..\..\tools\check_mesh.py (Get-ChildItem *.stl).Name
 python ..\..\..\..\tools\slice_bambu.py <contents of slice_args.txt> -o ..\vampire_counter_A1.3mf
 ```
+Set `$env:VAMPIRE_PALETTE="H"` (etc.) before the build to render the previews in another palette
+(`counter_preview_H.png`; the STLs and slice args don't change). Build the original palette last, as `parts_preview.png`
+takes the current palette too. Then refresh the comparison sheet:
+`python tools\palette_sheet.py models\vampire-counter\out\counter_preview.png -o models\vampire-counter\out\palettes_preview.png`.
+
 Uses helpers from `models/vampire-token` (extrusion) and `models/vampire-dial` (glyphs, text layout, drawing).
 **`models/vampire-arcana` imports this file**, so rebuild arcana too after changing anything shared.
 
@@ -221,3 +245,5 @@ Uses helpers from `models/vampire-token` (extrusion) and `models/vampire-dial` (
 - 2026-11-17: v4, power and toughness on **separate wheels** (1–9 each, 8 mm digits), rims out of the left and right
   edges, windows in the footer's corners with a bat-shaped "/" between them; card widened to **70.5 mm**; scene
   re-anchored to the wider plate. Not yet sliced. **Reprint all four parts.**
+- 2026-11-17: tan/brown palettes F–I from six Bambu PLA Matte spools (`tools/filaments.py`): per-palette slice args
+  (0.2 nozzle Matte preset, shared spools merged) and previews built in each palette. Geometry unchanged. Not sliced yet.

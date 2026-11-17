@@ -69,6 +69,13 @@ What the reference does (13 gallery photos and the description, 2026-11-12):
   red, copper (or gold silk) and white, and print from there.
 - The 0.2 nozzle preset already runs the first layer slowly (16 mm/s walls), as the reference advises.
 
+## Tan/brown palettes
+The same palettes F–I as vampire-counter (see the table in its README; spools in `tools/filaments.py`).
+For this woodcut card, **H** (Charcoal lines on Desert Tan) reads closest to the original, because the art is
+mostly line work. Slice with `parts/slice_args_<P>.txt`. Not sliced yet.
+Render one with `$env:VAMPIRE_PALETTE="H"` before the build (writes `arcana_preview_H.png`, `arcana_detail_H.png`);
+refresh the sheet with `python tools\palette_sheet.py models\vampire-arcana\out\arcana_preview.png -o models\vampire-arcana\out\palettes_preview.png`.
+
 ## Assembly
 1. Peel the parts off. The front and wheel come off face-down; turn them over.
 2. Clean any elephant foot off the wheel's rim and hole.
@@ -82,8 +89,9 @@ What the reference does (13 gallery photos and the description, 2026-11-12):
 ## Files (`out/`)
 - `vampire_arcana_A1.3mf`: **removed in v2** (it held v1.1 on the 0.4 nozzle); re-slice on the Windows PC.
 - `parts/`: 19 colour-part STLs (`<front|back|wheel>_<n>_<colour>.stl`, mm, mirrored and laid out as printed)
-  plus `slice_args.txt`.
+  plus `slice_args.txt` (original palette) and `slice_args_<F|G|H|I>.txt` (tan/brown palettes).
 - `arcana_preview.png`: the face at 1/1, 3/5 and 9/9, a nozzle simulation, and the back.
+- `palettes_preview.png`, `arcana_preview_<F|G|H|I>.png`: the tan/brown palettes (see above). `arcana_detail_<P>.png` likewise.
 - `arcana_detail.png`: the head, hilt and blade at print scale, plain and nozzle-simulated.
 - No STEP: the parts are shapely polygons extruded into meshes, as in vampire-counter.
 
@@ -111,3 +119,5 @@ scene; vampire-counter is the same card with flat-colour alt art.
   the Windows PC. **Reprint all three parts.**
 - 2026-11-17: v3, separate power and toughness wheels (vampire-counter v4), 70.5 mm card, scene re-anchored.
   Not yet sliced. **Reprint all four parts.**
+- 2026-11-17: tan/brown palettes F–I (Bambu PLA Matte): per-palette slice args and previews built in each palette.
+  Geometry unchanged. Not sliced yet.

@@ -14,6 +14,8 @@ tools/
   new_model.py          scaffold models/<slug>/ from templates/
   check_mesh.py         watertight / volume / size / bed-fit check + preview PNG
   slice_bambu.py        STL(s) -> sliced A1 .3mf via the installed Bambu Studio (incl. multi-colour AMS; 0.2 nozzle defaults)
+  filaments.py          spools on hand (name, hex, Bambu preset) + named card palettes (vampire cards)
+  palette_sheet.py      compare a vampire card's per-palette previews on one sheet
 templates/              model_template.py + model_README.md used by new_model.py
 models/<slug>/
   <module>.py           the parametric model (parameters at the top)
@@ -59,6 +61,8 @@ models/<slug>/
   (16 mm/s walls), so don't add `initial_layer_speed` overrides that were meant to slow the 0.4 preset.
 - A 0.2 nozzle lays ~0.22 mm lines. Art rules written for 0.4 (beads ≥ 0.45 mm) still print, conservatively.
   A face-down 0.4 mm colour inlay is now 4 layers, which roughly doubles its filament swaps.
+- Spools on hand, besides the Basic black/red/copper/white: six **Bambu PLA Matte** tan/brown colours: Ivory White,
+  Desert Tan, Caramel, Terracotta, Dark Chocolate, Charcoal. The names, hex values and palettes are in `tools/filaments.py`.
 - Parts larger than about 250 mm on any axis must be split; a part can also be rotated
   diagonally. Put each oversize half on its own plate (the slicer arranges this automatically).
 
