@@ -178,7 +178,7 @@ PLATE_GAP = 8.0
 # above is a multiple of 0.1 mm. The 0.2 nozzle preset's first layer is already slow (16 / 28 mm/s),
 # so the old initial-layer overrides (30 / 60, meant to SLOW the 0.4 preset) are gone. The Arachne
 # transition settings were tuned on the 0.4 nozzle; they're in % of the nozzle, so they carry over.
-NOZZLE = 0.2
+NOZZLE = 0.4
 SLICER_PRESETS = ["--machine", "Bambu Lab A1 0.4 nozzle", "--process", "0.20mm Standard @BBL A1",
                   "--filament", "Bambu PLA Basic @BBL A1"]
 SLICER_SET = ["wall_generator=arachne", "wall_transition_angle=30", "wall_transition_filter_deviation=50%",

@@ -58,7 +58,7 @@ models/<slug>/
 - Filament: **Bambu PLA Basic @BBL A1**. Process: **0.20mm Standard @BBL A1**. These are
   `slice_bambu.py`'s defaults (also the `SLICER_PRESETS` in the vampire models).
 - Heights: 0.2 mm layers, so a 0.4 mm face-down colour inlay is 2 layers. Models built for 0.10 mm layers
-  (vampire-counter/arcana/dial v3-v4) may have heights that are not multiples of 0.2 mm: re-check before slicing.
+  were rebuilt for 0.4 on 2026-11-21; all their heights are already multiples of 0.2 mm.
 - Art rules: beads ≥ 0.45 mm wide, islands ≥ 1 mm² (see the legibility sections below).
 - Spools on hand, besides the Basic black/red/copper/white: six **Bambu PLA Matte** tan/brown colours: Ivory White,
   Desert Tan, Caramel, Terracotta, Dark Chocolate, Charcoal. The names, hex values and palettes are in `tools/filaments.py`.
@@ -221,9 +221,9 @@ depth-sorting artifacts, not holes. Trust `open_edges`. View the PNG with the Re
 |---|---|---|
 | Wave jewelry-box insert (11.4×4.9×1", 5 waves + end ramps, 2 dovetailed halves) | `models/wave-insert/` | v4 sliced for A1 (1 plate) |
 | Vampire token card, 4-colour AMS (63×88 mm; flat-light + relief layouts) | `models/vampire-token/` | v2 sliced for A1 |
-| Vampire token with separate power + toughness wheels, 1–9 each (63×92×4.8 mm, 4 parts, 4-colour relief, tongue-and-groove) | `models/vampire-dial/` | v3 built with 0.10 mm layers, not sliced (slice defaults now 0.4 nozzle) |
-| Vampire counter: flat-colour alt art of vampire-arcana (same frame, title, P/T wheels, back; 70.5×88 mm); hosts the shared frame + mechanism | `models/vampire-counter/` | v4 built with 0.10 mm layers, not sliced (slice defaults now 0.4 nozzle) |
-| Vampire arcana: woodcut-tarot restyle of the counter (ink on white, gold moon, blood accents), face-down flat inlay; imports the counter's frame | `models/vampire-arcana/` | v3 built with 0.10 mm layers, not sliced (slice defaults now 0.4 nozzle) |
+| Vampire token with separate power + toughness wheels, 1–9 each (63×92×4.8 mm, 4 parts, 4-colour relief, tongue-and-groove) | `models/vampire-dial/` | v3 rebuilt + sliced for 0.4 nozzle, not printed |
+| Vampire counter: flat-colour alt art of vampire-arcana (same frame, title, P/T wheels, back; 70.5×88 mm); hosts the shared frame + mechanism | `models/vampire-counter/` | v4 rebuilt + sliced for 0.4 nozzle, not printed |
+| Vampire arcana: woodcut-tarot restyle of the counter (ink on white, gold moon, blood accents), face-down flat inlay; imports the counter's frame | `models/vampire-arcana/` | v3 rebuilt + sliced for 0.4 nozzle, not printed |
 | Vampire cathedral: rule-based blend of the two (flat colour for cloth/glass/gold, woodcut for skin/hair/steel/stone): counter's red cloak, arcana's armour, merged sword, spiked crown, red-lined collar, engraved nave, gold rose window; imports arcana's knight parts + counter | `models/vampire-cathedral/` | v3 sliced for A1, not printed |
 | Token dock: reusable 1/1–9/9 counter base (bottom-edge thumbwheel, bevelled window, 63×69.4×6 mm, same width as the card) + swappable flat 63×88 token cards (cleat toe, 2 magnet bosses, Ø6×2 magnets); imports arcana's scene + counter's dial (same wheel as the one-piece cards) | `models/token-dock/` | v1.2 sliced for A1 (base plate + arcana card plate), not printed |
 | iPhone Duo travel stand: one 8 mm print-in-place slab (122×110 mm) that unfolds into panel + prop leg + base; Ø56×7 puck behind a front lip, offset for the unfolded Duo; 60–73° | `models/duo-travel-stand/` | v1 sliced for A1, not printed |
