@@ -1,42 +1,48 @@
 #!/usr/bin/env python3
 """
-Vampire counter token: the colour-fill alt art of the vampire-arcana card. Same 63 x 88 card, same
-tarot frame (black card edge and rules, "VAMPIRE" in Georgia caps on a white title plate, the
-1/1 ... 9/9 dial window standing on the bottom edge of a footer plate, a bat either side), same face-down flat inlay
+Vampire counter token: the colour-fill alt art of the vampire-arcana card. Same 70.5 x 88 card, same
+tarot frame (black card edge and rules, "VAMPIRE" in Georgia caps on a white title plate, power and
+toughness on two wheels, 1-9 each, in ruled windows in the footer's corners with a bat-shaped "/"
+between them), same face-down flat inlay
 and same back. Only the art plate differs: here it is flat colour (an elder vampire knight in a red
 cloak before a blood moon, copper cloud streaks, a black castle), where arcana is a woodcut.
 
 Spec: see README.md in this folder.
 
-This module also HOSTS everything the cards share. models/vampire-arcana imports it, and
-models/vampire-cathedral and models/token-dock use it through arcana:
-  * the card frame: `frame()` paints the plates, title, window box and footer bats; `finish()` clears
-    the window mat and cleans the regions (slivers, islands, grid snap); `back_regions()` is the back;
-  * the dial mechanism: a wheel centred in the card with its thumb rim at the BOTTOM edge, V notches,
-    a reeded rim, a tapered filleted cantilever detent, a bevelled window, sockets, pegs;
-  * the face-down build `write_plate()` with its as-printed `assembly_check()`, the `preview()` sheet
-    and the side `section_preview()`.
+This module also HOSTS everything the two cards share, and models/vampire-arcana imports it:
+  * the card frame: `frame()` paints the plates, title, window boxes and the bat slash; `finish()` clears
+    the window mats and cleans the regions (slivers, islands, grid snap); `back_regions()` is the back;
+  * the mechanism: power and toughness wheels (V-notch grip), hubs on axle pins, tongue-and-groove
+    joint (v3: no detent; v4: two wheels, rims out of the left and right edges);
+  * the scene helpers for the widened card: `xr()` / `xc()` re-anchor x, `cloak_widen()`;
+  * the face-down build `write_plate()` and the `preview()` sheet.
 A card is then just a painter's-algorithm scene in the art plate (see `front_regions()` here).
 
 Parts (printed side by side on one plate):
-  front  face-down: a 0.4 mm colour inlay (2 layers), white above, sockets underneath, the window
-         bevelled through
-  back   base plate + spacer frame with the wheel cavity, an axle pin, 6 alignment pegs and the detent
-         arm; its face has the black edge and gold crescent inlaid in the same 2 layers
-  wheel  face-down: black "N/N" digits inlaid flat in white
+  front  face-down: a 0.4 mm colour inlay (4 layers at 0.10 mm), white above, groove + pin socket
+         underneath, window through
+  back   base plate + spacer frame with the two wheel cavities, two axle pins and a tongue round the
+         edge; its face has the black edge and gold crescent inlaid in the same layers
+  power, toughness   face-down wheels: black digits 1-9 inlaid flat in white
 
-Every colour change is in layers 1-2, so the whole plate needs ~6 swaps however much ink the art has.
+Every colour change is in the inlay layers (0-0.4 mm), however much ink the art has.
+Printed with a 0.2 mm nozzle at 0.10 mm layers (v3).
 
 Run (from the repo root):
     .venv\\Scripts\\python.exe models\\vampire-counter\\vampire_counter.py
+Colours: the previews use the palette named by env VAMPIRE_PALETTE (default "original"; see
+tools/filaments.py). The STLs don't depend on it.
 Outputs (millimetres) go to models\\vampire-counter\\out\\
     parts/<object>_<n>_<colour>.stl   parts laid out as on the plate; load as ONE object (--assemble)
-    parts/slice_args.txt              the matching slice_bambu.py arguments
-    counter_preview.png               the face at 1/1, 5/5, 9/9, a nozzle simulation, and the back
-    parts_preview.png                 back (spacer, detent, pin, pegs) and wheel
-    section_preview.png               side section of the printed parts, re-assembled
+    parts/slice_args.txt              the matching slice_bambu.py arguments (original palette)
+    parts/slice_args_<P>.txt          the same for each tools/filaments.py palette P (shared spools merged)
+    counter_preview.png               the face at 1/1, 3/5, 9/9, a nozzle simulation, and the back
+    parts_preview.png                 back (spacer, tongue, pins), front underside, joint section, wheels
+    text_cache.json                   the Windows-font text as outlines, for builds without the fonts
 """
 import importlib.util
+import os
+import sys
 import tempfile
 from pathlib import Path
 
@@ -64,21 +70,33 @@ vt = _load("vampire_token", HERE.parent / "vampire-token" / "vampire_token.py")
 vd = _load("vampire_dial", HERE.parent / "vampire-dial" / "vampire_dial.py")
 
 # ---- Parameters (mm) -------------------------------------------------------
-# Palette: AMS slots 1-4, shared with vampire-arcana (the same spools: black, red, copper, white).
-PALETTE = [("ink", "#1E1A18"), ("blood", "#9B1B1E"), ("gold", "#B87333"), ("paper", "#F4F1EA")]
+# Palette: the four art slots (ink, blood, gold, paper), shared with vampire-arcana. The spools behind each
+# palette live in tools/filaments.py; "original" is black, red, copper, white.
+sys.path.insert(0, str(HERE.parents[1] / "tools"))
+import filaments  # noqa: E402
+
+PALETTE_NAME = os.environ.get("VAMPIRE_PALETTE", "original")
+PALETTE = filaments.palette(PALETTE_NAME)
+TAG = "" if PALETTE_NAME == "original" else f"_{PALETTE_NAME}"     # preview file suffix
 INK, BLOOD, GOLD, PAPER = range(4)
 
-CARD_W, CARD_H, CORNER_R = 63.0, 88.0, 3.0
+# v4: 70.5 mm wide (was 63, standard token size), so two side-by-side wheels with 8 mm digits fit.
+CARD_W, CARD_H, CORNER_R = 70.5, 88.0, 3.0
 CX = CARD_W / 2
+# The scenes were drawn on the 63 mm card. Widening it: left-anchored x stays, centred x moves by DX,
+# right-anchored x by 2 DX (see xr()); the knight and moon follow CX.
+W0 = 63.0
+DX = (CARD_W - W0) / 2
 
 # ---- the card frame (shared with vampire-arcana) ----
 # Plates (white interiors) as (x0, y0, x1, y1). The black between them is the whole border:
-# 1.8 mm card edge, 1.2 mm rules. The footer is sized to frame the dial window, which the wheel fixes.
+# 1.8 mm card edge, 1.2 mm rules. The footer is sized to frame the dial windows, which the wheels fix.
 EDGE, RULE = 1.8, 1.2
 FOOTER = (EDGE, EDGE, CARD_W - EDGE, 18.0)
 ART = (EDGE, FOOTER[3] + RULE, CARD_W - EDGE, 72.6)
 TITLE_BOX = (EDGE, ART[3] + RULE, CARD_W - EDGE, CARD_H - EDGE)
 PLATE_R = CORNER_R - EDGE        # concentric with the card's corners
+CLOAK_K = (CARD_W / 2 - EDGE) / (W0 / 2 - EDGE)   # cloaks widen with the art plate to keep filling its corners
 
 # Title: black roman caps on the white plate, with generous margins (Georgia: of the installed romans
 # it keeps the most ink, 99.8 %, through a 0.42 mm open / 0.3 mm close).
@@ -88,53 +106,46 @@ TITLE_CAP = 6.0
 TITLE_TRACK = 1.1
 TITLE_BOLDEN = 0.06
 
-# Dial window: bevelled out from the wheel to the face (one layer per step, 45 deg), so the digits stay
-# whole when read at an angle; the straight 2 mm hole of v2 hid 1.8 mm of their bottoms at 45 deg.
-# A black rule frames the bevel's mouth and runs into the card's bottom edge; a bat either side.
-LAYER = 0.2
-WIN_BEVEL = (1.0, 1.0)           # bevel run in x and y
-BEVEL_STEPS = 5                  # layers the bevel takes, below the inlay
-MOUTH_R = 2.2                    # corner radius of the bevel's mouth
+# Dial window frames: white mat, then a black rule, like the tarot numeral box. Between the power and
+# toughness windows, a bat diving along a "/" diagonal is the P/T slash.
+WIN_MAT = 0.7
 WIN_RULE = 0.7
-FOOTER_BAT = 11.0                # wingspan
+SLASH_BAT_LEN = 15.0             # wing tip to wing tip, along the diagonal
+SLASH_BAT_ANGLE = 62.0           # degrees from horizontal: the wings run up to the right, like "/"
+SLASH_BAT_W = 3.0                # wing depth
 
 # Face-down inlay
 INLAY = 0.4                      # two 0.2 mm layers: opaque enough for ink, red and gold over white
 BACK_ART = True                  # border + crescent inlaid on the card's back (no extra swaps)
 
-# Digits: Bahnschrift Bold Condensed; the slash is scaled to the digit height (its natural
-# descender/overshoot would make the window taller, and the window height sets the wheel size).
+# Digits: Bahnschrift Bold Condensed, one digit per wheel (v4: power and toughness are separate).
 DIGIT_FONT = (r"C:\Windows\Fonts\bahnschrift.ttf", {"wght": 700, "wdth": 75})
-DIGIT_H = 7.5                   # digit cap height (8.0 in v2, see DIGIT_R; the vampire-dial digits were 3.0 mm)
-DIGIT_GAP = 0.7                 # between the digits and the slash
+DIGIT_H = 8.0                   # digit cap height, as v3's "N/N" digits
 DIGIT_BOLDEN = 0.05
 VALUES = range(1, 10)
 STEP = 360 / len(VALUES)        # 40 degrees per value
-WIN_PAD = (0.8, 0.6)            # window margin around the largest "N/N" (x, y)
+WIN_PAD = (0.8, 0.6)            # window margin around the widest digit (x, y)
 WIN_R = 1.5
 
-# Wheel: centred in the card and as large as the side walls allow, with the window straight below the
-# axle and the rim poking out of the card's BOTTOM edge. Turning it counter-clockwise (pushing the rim
-# to the RIGHT) counts up. In v2 the wheel sat to the right and its rim poked out of the right edge.
-# The rim must clear the window by the bevel, a frame strip (3 beads) and the protrusion: 8 mm digits
-# (ring r 21) leave 2.5 mm for bevel + protrusion, 7.5 mm digits (ring r 19.75) leave 4.0 mm.
-WIN_ANGLE = -90.0               # straight down: the value sits on the card's centre line
-DIGIT_R = 19.75                 # smallest ring radius that hides both neighbours (searched in 0.25 steps)
-PROTRUDE = 2.0                  # rim past the card's bottom edge
-SIDE_WALL = 1.6                 # spacer left beside the wheel at its widest; this sets the wheel's radius
+# Wheels: (name, side). Power is bottom-left with its rim out of the left edge, toughness bottom-right
+# out of the right edge. Each window sits DIGIT_R straight below its wheel's centre. Pushing either
+# rim UP counts up (so the power wheel turns clockwise, the toughness wheel counter-clockwise).
+WHEELS = (("power", -1), ("toughness", +1))
+WIN_ANGLE = -90.0
+DIGIT_R = 11.2                  # smallest ring radius that hides both neighbours of a single 8 mm digit (searched)
+PROTRUDE = 2.5                  # rim past the card's side edge
+BOTTOM_WALL = 1.0               # spacer between a cavity and the card's bottom edge
+MID_WALL = 1.0                  # spacer between the two cavities (sets the narrowest card, MIN_CARD_W)
 CHANNEL_MARGIN = 0.4
-MIN_RIM = 0.8                   # least rim between the digit channel and the notch bottoms (WHEEL_RIM is derived)
-# 9 V notches = the detent seats and the thumb grip. v1 had round scallops (R 6) under a small nub
-# (R 1.2): near the bottom the nub rose only s^2/(2*4.8), so the wheel wiggled about a value with
-# almost no restoring force. Straight flanks lift the nub linearly (0.7 mm per mm of turn at 35 deg).
+WHEEL_RIM = 0.8                 # rim between the digit channel and the notch bottoms
+# 9 V notches: the thumb grip (the "gear" teeth). v3 dropped the spring detent that seated in them:
+# a wheel's own friction in the case holds its value, and the arm was a part that could fail.
+GRIP_ANGLE = 90.0               # a notch sits at the top of each wheel
 NOTCH_DEPTH = 1.3
-NOTCH_FLANK = 35.0              # flank angle from the rim's tangent (steeper = firmer centring, harder click)
+NOTCH_FLANK = 35.0              # flank angle from the rim's tangent
 NOTCH_EDGE_R = 0.6              # rounding of the notch's rim edges
-# Reeded rim between the notches, for grip: only PROTRUDE of rim shows, and at rest one notch. The slits
-# are too narrow for the nub to drop into (0.06 mm), so they are not detents. GRIP_W = 0: smooth rim.
-GRIP_W, GRIP_DEPTH, GRIP_PITCH, GRIP_SKIP = 0.7, 0.7, 4.0, 2    # mm, mm, deg, pitches kept clear of a notch
 WHEEL_T = 1.8                   # disc thickness (digits inlaid in its face, which prints on the plate)
-PIN_D, PIN_CLR = 6.0, 0.25      # axle pin; radial clearance in the wheel's hole
+PIN_D, PIN_CLR = 6.0, 0.4       # axle pin; radial clearance in the wheel's hole (v3: 0.25 was too snug)
 WHEEL_CLR = 0.4                 # radial clearance wheel -> cavity wall
 AX_CLR = 0.4                    # axial play
 
@@ -142,42 +153,36 @@ AX_CLR = 0.4                    # axial play
 BASE_T = 0.6
 CAVITY = WHEEL_T + AX_CLR       # 2.2
 BACK_T = BASE_T + CAVITY        # 2.8
-PEG_D, PEG_H = 2.0, 0.4
-SOCKET_D_CLR = 0.15             # per side
-SOCKET_DEPTH = 0.6
-PEGS = [(4.5, 83.5), (58.5, 83.5), (4.5, 64.0), (58.5, 64.0), (3.5, 4.0), (59.5, 4.0)]
-
-# Detent: a tapered cantilever in the spacer above the wheel, running up to the right; its round nub seats on
-# both flanks of a notch. v1 (15 x 1.0 mm, square root) bent to 1.07 % strain over the rim from a
-# sharp corner and held the wheel with 0.13 N. This one: ~0.52 % at the rim, 0.40 N seated, filleted root.
-# 9 notches are 40 deg apart, so a notch rests at the bottom of the rim (under the thumb) only if the
-# detent sits 160 deg from it.
-DETENT_ANGLE = 110.0
-ARM_SIDE = 1                    # the arm runs clockwise (up to the right) from the nub
-ARM_L = 26.0                    # free length
-ARM_T_TIP, ARM_T_ROOT = 1.4, 2.2    # tapered: strain is spread along the arm instead of peaking at the root
-ROOT_FILLET = 3.0               # concave fillet where the arm meets the spacer
-ARM_TOP_CLR = 0.2
-NUB_R = 1.0
-PRELOAD = 0.4                   # interference when seated: holds the wheel firmly on a value
-ARM_GAP = 0.4
-STOP_GAP = 0.2                  # the pocket wall stops the arm this far (+ ARM_GAP) past the deflection it needs
-E_PLA = 3500.0                  # MPa, for the strain/force report
-MAX_STRAIN = 0.008              # PLA yields around 2-3 %; keep repeated flexing well below
+# Tongue and groove (v3, replaces 6 Ø2 pegs): a ridge on the spacer's top face runs round the card
+# edge wherever the wheel cavities leave room (v4: the top and both sides down to the wheels, and the
+# bottom edge between them); the front's underside has the matching groove. It locates the front in X and Y
+# along most of the edge and gives the glue a long line instead of 6 dots.
+TONGUE_W, TONGUE_H = 1.2, 0.6   # ~5 lines wide at a 0.2 nozzle, 6 layers tall at 0.10 mm
+TONGUE_INSET = 2.0              # card edge -> tongue centreline (front groove keeps a 1.25 mm outer wall)
+TONGUE_CLR = 0.15               # per side, in the groove
+TONGUE_GAP = 1.2                # tongue edge -> wheel cavity, minimum
+TONGUE_MIN_LEN = 8.0            # shorter runs are dropped
+GROOVE_DEPTH = TONGUE_H + 0.2   # 0.2 mm of glue room above the tongue (and the pin)
+SOCKET_D_CLR = 0.15             # per side, the pin's socket in the front
 
 # Front
 FRONT_T = 2.0
 
-# Printability limits for the art (checked, not just hoped for)
-BEAD = 0.45                     # narrower than this prints as a broken single bead
+# Printability limits for the art (checked, not just hoped for). The art was designed for a 0.4
+# nozzle; these limits still hold (conservatively) on the 0.2 nozzle used from v3.
+BEAD = 0.45                     # narrower than this read as a broken bead on a 0.4 nozzle
 MIN_ISLAND = 1.0                # mm^2
 
 PLATE_GAP = 8.0
-# Arachne tuned for 1-3 bead strokes (vampire-dial), plus a slow first layer: face-down, the art IS
-# the first layer (the Token Arcana author's advice for a 0.4 nozzle).
+# v3: 0.2 mm nozzle, 0.10 mm layers (the 0.4 nozzle settings are in git history). Every height
+# above is a multiple of 0.1 mm. The 0.2 nozzle preset's first layer is already slow (16 / 28 mm/s),
+# so the old initial-layer overrides (30 / 60, meant to SLOW the 0.4 preset) are gone. The Arachne
+# transition settings were tuned on the 0.4 nozzle; they're in % of the nozzle, so they carry over.
+NOZZLE = 0.2
+SLICER_PRESETS = ["--machine", "Bambu Lab A1 0.4 nozzle", "--process", "0.20mm Standard @BBL A1",
+                  "--filament", "Bambu PLA Basic @BBL A1"]
 SLICER_SET = ["wall_generator=arachne", "wall_transition_angle=30", "wall_transition_filter_deviation=50%",
-              "min_bead_width=50%", "wall_transition_length=50%",
-              "initial_layer_speed=30", "initial_layer_infill_speed=60"]
+              "min_bead_width=50%", "wall_transition_length=50%"]
 
 # ---- this card's scene (the colour-fill alt art) ----
 HEAD = (CX, 50.2)                # the knight's face centre; his local frame is 1 unit = 1 mm
@@ -216,6 +221,27 @@ def taper(pts, w0, w1, n=60):
     return unary_union([a.union(b).convex_hull for a, b in zip(circles, circles[1:])])
 
 
+def xr(x):
+    """A right-anchored x of the 63 mm scenes on the widened card."""
+    return x + 2 * DX
+
+
+def xc(x):
+    """A centred x of the 63 mm scenes on the widened card."""
+    return x + DX
+
+
+def cloak_widen(g, y0=-17.0, y1=-31.0):
+    """Widen a cloak shape (knight's local frame) with the art plate: unchanged at the shoulders (y0,
+    under the pauldrons, so no sliver peeks out above them), CLOAK_K times wider from y1 down."""
+    from shapely.ops import transform
+
+    def f(x, y):
+        t = np.clip((y0 - np.asarray(y)) / (y0 - y1), 0, 1)
+        return np.asarray(x) * (1 + (CLOAK_K - 1) * t), y
+    return transform(f, g)
+
+
 def mirror(g, x=CX):
     return affinity.scale(g, -1, 1, origin=(x, 0))
 
@@ -237,7 +263,7 @@ def digit_font():
     from fontTools.varLib.instancer import instantiateVariableFont
     src, axes = DIGIT_FONT
     if not Path(src).exists():
-        print(f"  warning: {src} not found, digits fall back to DejaVu Sans Bold")
+        print(f"  note: {src} not found; digits come from text_cache.json (else DejaVu Sans Bold)")
         return FontProperties(family="DejaVu Sans", weight="bold")
     dst = Path(tempfile.gettempdir()) / f"vampire_counter_{Path(src).stem}_{axes['wght']}_{axes['wdth']}.ttf"
     if not dst.exists():
@@ -248,29 +274,28 @@ def digit_font():
 DFONT = digit_font()
 
 
-def nn_text(v, centre):
-    """'v/v' with the slash scaled to the digit height, bbox centred on centre."""
+def digit_text(v, centre):
+    """One digit, DIGIT_H tall, bbox centred on centre."""
+    g = vd.text_cache(HERE / "text_cache.json", f"digit_{v}", lambda: _digit_text(v), DIGIT_FONT[0])
+    return affinity.translate(g, *centre)
+
+
+def _digit_text(v):
     k = (DIGIT_H - 2 * DIGIT_BOLDEN) / vd.glyphs("8", DFONT).bounds[3]
-    d = affinity.scale(vd.glyphs(str(v), DFONT), k, k, origin=(0, 0))
-    s = vd.glyphs("/", DFONT)
-    ks = (DIGIT_H - 2 * DIGIT_BOLDEN) / (s.bounds[3] - s.bounds[1])
-    s = affinity.scale(s, ks, ks, origin=(0, 0))
-    s = affinity.translate(s, 0, -s.bounds[1])
-    parts, x = [], 0.0
-    for g in (d, s, d):
-        b = g.bounds
-        parts.append(affinity.translate(g, x - b[0], 0))
-        x += b[2] - b[0] + DIGIT_GAP
-    g = unary_union(parts).buffer(DIGIT_BOLDEN, join_style="round")
+    g = affinity.scale(vd.glyphs(str(v), DFONT), k, k, origin=(0, 0)).buffer(DIGIT_BOLDEN, join_style="round")
     b = g.bounds
-    return affinity.translate(g, centre[0] - (b[0] + b[2]) / 2, centre[1] - (b[1] + b[3]) / 2)
+    return affinity.translate(g, -(b[0] + b[2]) / 2, -(b[1] + b[3]) / 2)
 
 
 def title_text():
+    return vd.text_cache(HERE / "text_cache.json", "title", _title_text, TITLE_FONT)
+
+
+def _title_text():
     if Path(TITLE_FONT).exists():
         fp = FontProperties(fname=TITLE_FONT)
     else:
-        print(f"  warning: {TITLE_FONT} not found, title falls back to DejaVu Serif")
+        print(f"  warning: {TITLE_FONT} not found and not cached, title falls back to DejaVu Serif")
         fp = FontProperties(family="DejaVu Serif")
     cap = vd.glyphs("V", fp).bounds[3]
     k = (TITLE_CAP - 2 * TITLE_BOLDEN) / cap
@@ -285,74 +310,75 @@ def title_text():
 # ---- dial geometry (wheel centre at the origin, then placed) -------------------
 
 def dial_layout():
+    """Wheel radius, centres and window size. Both wheels are the same: digit ring DIGIT_R, window
+    straight below the centre (WIN_ANGLE), centres PROTRUDE past their side edges."""
     a = np.radians(WIN_ANGLE)
-    P0 = DIGIT_R * np.array([np.cos(a), np.sin(a)])          # window centre relative to C
-    texts = [nn_text(v, P0) for v in VALUES]
+    P0 = DIGIT_R * np.array([np.cos(a), np.sin(a)])          # window centre relative to a wheel centre
+    texts = [digit_text(v, P0) for v in VALUES]
     W = max(t.bounds[2] - t.bounds[0] for t in texts) + 2 * WIN_PAD[0]
     H = max(t.bounds[3] - t.bounds[1] for t in texts) + 2 * WIN_PAD[1]
     win0 = vd.rounded_box(*P0, W, H, WIN_R)
     pts = np.array(win0.exterior.coords)
     r_out = np.hypot(*pts.T).max() + CHANNEL_MARGIN
-    R = CARD_W / 2 - SIDE_WALL - WHEEL_CLR
-    rim = R - r_out - NOTCH_DEPTH                            # between the digit channel and the notch bottoms
-    assert rim >= MIN_RIM, f"only {rim:.2f} mm of rim outside the digit channel"
-    C = np.array([CARD_W / 2, R - PROTRUDE])
-    return C, R, C + P0, (W, H), rim
+    R = r_out + WHEEL_RIM + NOTCH_DEPTH
+    cy = R + WHEEL_CLR + BOTTOM_WALL
+    centres = {name: np.array([R - PROTRUDE if side < 0 else CARD_W + PROTRUDE - R, cy])
+               for name, side in WHEELS}
+    return centres, R, P0, (W, H)
 
 
-C, R_WHEEL, WIN_C, WIN_WH, WHEEL_RIM = dial_layout()
+WHEEL_C, R_WHEEL, WIN_P0, WIN_WH = dial_layout()
+SPIN = {name: side for name, side in WHEELS}   # +1: a counter-clockwise turn counts up (rim pushed UP at the
+                                                # right edge); -1: clockwise (rim pushed UP at the left edge)
+# Narrowest card that holds both wheels side by side with MID_WALL of spacer between their cavities
+MIN_CARD_W = 4 * R_WHEEL + 2 * WHEEL_CLR + MID_WALL - 2 * PROTRUDE
 
 
-def opening(f):
-    """The window's opening: f = 0 at the wheel (the window itself) ... 1 at the face (the bevel's mouth)."""
-    return vd.rounded_box(*WIN_C, WIN_WH[0] + 2 * WIN_BEVEL[0] * f, WIN_WH[1] + 2 * WIN_BEVEL[1] * f,
-                          WIN_R + (MOUTH_R - WIN_R) * f)
+def win_centre(name):
+    return WHEEL_C[name] + WIN_P0
 
 
-def window():
-    return opening(0.0)
+def window(name=None):
+    """One wheel's window, or (no name) both."""
+    if name is None:
+        return unary_union([window(n) for n, _ in WHEELS])
+    return vd.rounded_box(*win_centre(name), *WIN_WH, WIN_R)
 
 
-def mouth():
-    return opening(1.0)
-
-
-def grip_slits(R):
-    out = []
-    for a0 in DETENT_ANGLE + STEP * np.arange(len(VALUES)):
-        for k in range(GRIP_SKIP, int(round(STEP / GRIP_PITCH)) - GRIP_SKIP + 1):
-            s = box(R - GRIP_DEPTH, -GRIP_W / 2, R + 1, GRIP_W / 2)
-            out.append(affinity.translate(affinity.rotate(s, a0 + k * GRIP_PITCH, origin=(0, 0)), *C))
-    return unary_union(out)
-
-
-def wheel_geometry():
-    win = window()
+def wheel_geometry(name):
+    C = WHEEL_C[name]
+    win = window(name)
     pts = np.array(win.exterior.coords)
     r_out = np.hypot(*(pts - C).T).max() + CHANNEL_MARGIN
     r_in = Point(*C).distance(win) - CHANNEL_MARGIN
     r_valley = r_out + WHEEL_RIM
     R = r_valley + NOTCH_DEPTH
     channel = disk(C, r_out, 256).difference(disk(C, r_in, 256))
-    notches = unary_union([notch(R, a) for a in np.radians(DETENT_ANGLE + STEP * np.arange(len(VALUES)))])
+    notches = unary_union([notch(C, R, a) for a in np.radians(GRIP_ANGLE + STEP * np.arange(len(VALUES)))])
     hole = disk(C, PIN_D / 2 + PIN_CLR, 32)
     disc = disk(C, R, 512).difference(notches)
     disc = disc.buffer(-NOTCH_EDGE_R).buffer(NOTCH_EDGE_R).difference(hole)   # round the notch's rim edges
-    if GRIP_W:
-        disc = disc.difference(grip_slits(R))
-    # value v is laid out upright at the window, then turned back (v-1) steps: turning the wheel
-    # (v-1) steps counter-clockwise brings it into the window.
-    groups = [affinity.rotate(nn_text(v, WIN_C), -STEP * (v - 1), origin=tuple(C)) for v in VALUES]
+    # value v is laid out upright at the window, then turned back (v-1) steps against the wheel's
+    # count-up direction: turning the wheel (v-1) steps the count-up way brings it into the window.
+    spin = SPIN[name]
+    groups = [affinity.rotate(digit_text(v, win_centre(name)), -spin * STEP * (v - 1), origin=tuple(C))
+              for v in VALUES]
     for g in groups:
         assert channel.contains(g), "digits must sit inside the channel"
     for i, g in enumerate(groups):       # every value, one step either side of the window, stays hidden
         for s in (-STEP, STEP):
-            nb = affinity.rotate(g, STEP * i + s, origin=tuple(C))
+            nb = affinity.rotate(g, spin * STEP * i + s, origin=tuple(C))
             assert not nb.intersects(win.buffer(0.3)), "a neighbouring value would show in the window"
-    return dict(R=R, r_in=r_in, r_out=r_out, r_valley=r_valley, disc=disc, groups=groups)
+    return dict(name=name, C=C, spin=spin, R=R, r_in=r_in, r_out=r_out, r_valley=r_valley, disc=disc,
+                groups=groups)
 
 
-def notch(R, a):
+def turned(g, wh, v):
+    """g (on wheel wh) turned to show value v in the window."""
+    return affinity.rotate(g, wh["spin"] * STEP * (v - 1), origin=tuple(wh["C"]))
+
+
+def notch(C, R, a):
     """A V notch at angle a: apex NOTCH_DEPTH below the rim, flanks NOTCH_FLANK from the tangent."""
     u = np.array([np.cos(a), np.sin(a)])
     t = np.array([-np.sin(a), np.cos(a)])
@@ -362,122 +388,55 @@ def notch(R, a):
     return Polygon([apex, apex + h * u + w * t, apex + h * u - w * t])
 
 
-def nub_radius_free(R):
-    """Radial position of the nub centre with the arm unbent: touching both flanks, minus the preload."""
-    return R - NOTCH_DEPTH + NUB_R / np.cos(np.radians(NOTCH_FLANK)) - PRELOAD
-
-
-def arm_width(s):
-    """Arm width at distance s from the tip: linear taper, then the root fillet flares into the wall."""
-    w = ARM_T_TIP + (ARM_T_ROOT - ARM_T_TIP) * min(s, ARM_L) / ARM_L
-    if s > ARM_L:
-        d = min(s - ARM_L, ROOT_FILLET)
-        w += 2 * (ROOT_FILLET - np.sqrt(ROOT_FILLET ** 2 - d ** 2))
-    return w
-
-
-def arm_mechanics(R):
-    """Deflections the arm sees, and its peak strain and nub force at each (tapered cantilever, tip load)."""
-    x = np.linspace(1e-6, ARM_L, 4000)
-    t = ARM_T_TIP + (ARM_T_ROOT - ARM_T_TIP) * x / ARM_L
-    h = BACK_T - ARM_TOP_CLR
-    compliance = np.trapezoid(x ** 2 / (h * t ** 3 / 12), x) / E_PLA   # mm per N
-    seated = PRELOAD
-    land = R + NUB_R - nub_radius_free(R)
-    stop = land + STOP_GAP + ARM_GAP
-    out = {}
-    for name, d in (("seated", seated), ("on the rim", land), ("at the stop", stop)):
-        P = d / compliance
-        out[name] = (d, P, (6 * P * x / (E_PLA * h * t ** 2)).max())
-    return out
-
-
-def detent(R):
-    a = np.radians(DETENT_ANGLE)
-    u = np.array([np.cos(a), np.sin(a)])                       # radial, outward
-    t = ARM_SIDE * np.array([np.sin(a), -np.cos(a)])           # along the arm, tip -> root
-    n = u                                                      # arm normal, away from the wheel
-    inner0 = C + (R + ARM_GAP) * u                             # the arm's inner edge at its tip clears the rim
-    flare_end = ARM_L + np.sqrt(ROOT_FILLET ** 2 - (ROOT_FILLET - (ARM_GAP + 0.3)) ** 2)   # flare meets the wall
-    ss = np.r_[np.linspace(0, ARM_L, 40), np.linspace(ARM_L, flare_end, 30)[1:]]
-    taper_w = ARM_T_TIP + (ARM_T_ROOT - ARM_T_TIP) * np.minimum(ss, ARM_L) / ARM_L
-    flare = np.array([arm_width(x) for x in ss]) - taper_w     # both sides of the root get half
-    inner = [inner0 + x * t - f / 2 * n for x, f in zip(ss, flare)]
-    outer = [inner0 + x * t + (w + f / 2) * n for x, w, f in zip(ss, taper_w, flare)]
-    beam = Polygon(inner + outer[::-1])
-    end = inner0 + flare_end * t
-    w_end = ARM_T_ROOT + flare[-1]
-    anchor = Polygon([end - flare[-1] / 2 * n, end + 2.0 * t - flare[-1] / 2 * n,
-                      end + 2.0 * t + (w_end - flare[-1] / 2) * n, end + (w_end - flare[-1] / 2) * n])
-    nub = Point(*(C + nub_radius_free(R) * u)).buffer(NUB_R, quad_segs=24)
-    # a radial neck joins the nub to the arm's tip; it narrows to 1.4 mm just above the rim so it stays
-    # clear of the notch's edges (a hull toward the arm would clip the notch's rim edge)
-    base_c = C + (R - 0.1) * u
-    top_c = inner0 + ARM_T_TIP * n
-    neck = Polygon([base_c - 0.7 * t, base_c + 0.7 * t, top_c + 0.7 * t, top_c - 0.7 * t])
-    head = nub.union(neck).convex_hull
-    arm = unary_union([beam, anchor, head]).buffer(0.05).buffer(-0.05)
-    # pocket: the arm at rest and swung out (about its root) by the deflection it needs on the rim,
-    # plus a stop gap; the pocket wall is the over-travel stop, so the arm can't be bent past it.
-    rest = unary_union([Polygon(inner[:40] + outer[:40][::-1]), head])
-    land = R + NUB_R - nub_radius_free(R)
-    root = inner0 + ARM_L * t
-    ang = np.degrees(np.arctan((land + STOP_GAP) / ARM_L))
-    sws = [affinity.rotate(rest, sg * ang, origin=tuple(root)) for sg in (1, -1)]
-    sw = max(sws, key=lambda g: Point(*C).distance(g.centroid))   # swing away from the wheel
-    # along the root the pocket follows the arm WITHOUT its flare, so the fillet curves out to meet the
-    # pocket wall (the slots either side end in a smooth ramp, not a square corner on the arm's edge)
-    straight = Polygon([inner0 + x * t for x in ss] + [inner0 + x * t + w * n for x, w in zip(ss, taper_w)][::-1])
-    pocket = unary_union([unary_union([rest, sw]).convex_hull, straight]).buffer(ARM_GAP, join_style="mitre")
-    return arm, pocket, nub
+def tongue(card, cavity):
+    """The tongue's footprint (vd.edge_tongue, shared with vampire-dial) and its run lengths."""
+    return vd.edge_tongue(card, cavity, TONGUE_INSET, TONGUE_W, TONGUE_GAP, TONGUE_MIN_LEN)
 
 
 def mechanism():
-    """The back, wheel and detent, with every fit and strain check. Shared by both cards."""
+    """The back, both wheels and the tongue-and-groove joint, with every fit check. Shared by both cards.
+    v4: two wheels, power bottom-left (rim out of the left edge) and toughness bottom-right (right edge).
+    No detent: each wheel's friction in the case holds its value."""
     card = vt.rounded_rect(CARD_W, CARD_H, CORNER_R)
-    wh = wheel_geometry()
-    R = wh["R"]
-    arm, pocket, nub = detent(R)
-    cavity = disk(C, R + WHEEL_CLR, 512).union(pocket)
+    whs = [wheel_geometry(name) for name, _ in WHEELS]
+    R = whs[0]["R"]
+    assert all(abs(w["R"] - R) < 1e-6 for w in whs)
+    cavities = [disk(w["C"], R + WHEEL_CLR, 512) for w in whs]
+    cavity = unary_union(cavities)
     spacer = card.difference(cavity)
-    base = card.difference(pocket)
-    pegs = unary_union([disk(p, PEG_D / 2, 24) for p in PEGS])
-    sockets = unary_union([disk(p, PEG_D / 2 + SOCKET_D_CLR, 24) for p in PEGS] +
-                          [disk(C, PIN_D / 2 + SOCKET_D_CLR, 32)])
+    ridge, runs = tongue(card, cavity)
+    pins = unary_union([disk(w["C"], PIN_D / 2, 32) for w in whs])
+    sockets = unary_union([ridge.buffer(TONGUE_CLR, quad_segs=12)] +
+                          [disk(w["C"], PIN_D / 2 + SOCKET_D_CLR, 32) for w in whs])
 
-    side_wall = C[0] - R - WHEEL_CLR
-    assert side_wall >= 1.5, f"wheel cavity is {side_wall:.2f} mm from the card's side edges"
-    assert card.buffer(-0.9).contains(pocket), "detent pocket too close to the card edge"
-    for p in PEGS:
-        assert spacer.buffer(-0.8).contains(disk(p, PEG_D / 2, 24)), f"peg {p} not on solid spacer"
-    assert arm.intersection(spacer).area > 0.5, "detent arm root must be anchored in the spacer"
-    # seated, the nub overlaps both notch flanks by the preload (no more, no less) and nothing else touches
-    k = PRELOAD * np.cos(np.radians(NOTCH_FLANK))
-    assert nub.intersects(wh["disc"]) and not nub.buffer(-k - 0.01).intersects(wh["disc"]), "nub preload is off"
-    assert arm.difference(nub.buffer(0.01)).disjoint(wh["disc"]), "only the nub may touch the wheel"
-    assert spacer.disjoint(wh["disc"].buffer(WHEEL_CLR - 0.01)), "spacer runs into the wheel"
-    mech = arm_mechanics(R)
-    for name, (d, P, e) in mech.items():
-        print(f"detent {name:11s}: deflection {d:.2f} mm, nub force {P:.2f} N, peak strain {100 * e:.2f} %")
-    assert mech["at the stop"][2] < MAX_STRAIN, "the arm would be over-strained at its stop"
-    mo = mouth()
-    fr = mo.buffer(WIN_RULE).bounds
-    assert mo.bounds[1] >= 3 * BEAD, "under three beads of frame left below the window's mouth"
-    assert FOOTER[0] + 0.6 <= fr[0] and fr[2] <= FOOTER[2] - 0.6 and fr[3] <= FOOTER[3] - 0.6, \
-        "the window's ruled mouth must sit inside the footer plate"
-    assert FRONT_T - INLAY - BEVEL_STEPS * LAYER >= SOCKET_DEPTH - 1e-9, "the bevel runs into the socket layers"
+    mid = cavities[0].distance(cavities[1])
+    protrude = [min(w["C"][0] - R, CARD_W - (w["C"][0] + R)) for w in whs]
+    assert mid >= MID_WALL - 1e-6, f"only {mid:.2f} mm between the wheel cavities (card {CARD_W}, need {MIN_CARD_W:.1f})"
+    assert all(abs(p + PROTRUDE) < 1e-6 for p in protrude), "each rim pokes PROTRUDE past its edge"
+    assert spacer.buffer(-0.5).contains(ridge), "tongue must stand on solid spacer"
+    assert card.buffer(-1.0).contains(sockets), "the front's groove needs an outer wall of >= 1 mm"
+    assert sockets.disjoint(window().buffer(WIN_MAT + WIN_RULE)), "groove under a window box"
+    assert FRONT_T - GROOVE_DEPTH >= INLAY + 0.4, "too little front above the groove"
+    assert sum(runs) > 0.5 * card.buffer(-TONGUE_INSET).length, "tongue covers too little of the edge"
+    assert (PIN_D / 2 + PIN_CLR) < whs[0]["r_in"] - 1.0, "hub hole runs into the digit channel"
+    foot = rrect(FOOTER, PLATE_R).buffer(-0.6)
+    for name, _ in WHEELS:
+        assert foot.contains(window(name).buffer(WIN_MAT + WIN_RULE)), \
+            f"the {name} window's ruled box must sit inside the footer plate"
 
-    print(f"card: {CARD_W:.1f} x {CARD_H:.1f} mm, {BACK_T + FRONT_T:.1f} mm thick assembled "
-          f"({CARD_W / 25.4:.3f} x {CARD_H / 25.4:.3f} x {(BACK_T + FRONT_T) / 25.4:.3f} in)")
-    print(f"wheel: centre ({C[0]:.2f}, {C[1]:.2f}), R {R:.2f} (notch bottoms {wh['r_valley']:.2f}), "
-          f"channel {wh['r_in']:.2f}-{wh['r_out']:.2f}, digits at r {DIGIT_R}, rim band {WHEEL_RIM:.2f} mm; the rim "
-          f"protrudes {PROTRUDE:.2f} mm from the bottom edge over {2 * np.sqrt(R ** 2 - (R - PROTRUDE) ** 2):.1f} mm, "
-          f"side walls {side_wall:.2f} mm")
-    print(f"plates: title {TITLE_BOX[3] - TITLE_BOX[1]:.1f}, art {ART[3] - ART[1]:.1f}, footer "
-          f"{FOOTER[3] - FOOTER[1]:.1f} mm tall; window {WIN_WH[0]:.1f} x {WIN_WH[1]:.1f} at "
-          f"({WIN_C[0]:.2f}, {WIN_C[1]:.2f}), mouth {mo.bounds[2] - mo.bounds[0]:.1f} x "
-          f"{mo.bounds[3] - mo.bounds[1]:.1f}; digits {DIGIT_H} mm")
-    return dict(card=card, wh=wh, arm=arm, spacer=spacer, base=base, pegs=pegs, sockets=sockets)
+    print(f"card: {CARD_W:.1f} x {CARD_H:.1f} mm (narrowest that fits: {MIN_CARD_W:.1f}), {BACK_T + FRONT_T:.1f} mm "
+          f"thick assembled ({CARD_W / 25.4:.3f} x {CARD_H / 25.4:.3f} x {(BACK_T + FRONT_T) / 25.4:.3f} in)")
+    for w in whs:
+        print(f"{w['name']:9s} wheel: centre ({w['C'][0]:.2f}, {w['C'][1]:.2f}), R {R:.2f} "
+              f"(dia {2 * R:.1f}, notch bottoms {w['r_valley']:.2f}), channel {w['r_in']:.2f}-{w['r_out']:.2f}, "
+              f"digits at r {DIGIT_R}, window at ({win_centre(w['name'])[0]:.2f}, {win_centre(w['name'])[1]:.2f})")
+    print(f"rims protrude {PROTRUDE} mm each side; {mid:.2f} mm of spacer between the cavities; "
+          f"hub hole {PIN_D + 2 * PIN_CLR:.1f} on a {PIN_D:.1f} pin")
+    print(f"tongue: {TONGUE_W} x {TONGUE_H} mm, {len(runs)} runs " + ", ".join(f"{x:.1f}" for x in runs) +
+          f" mm ({sum(runs):.0f} mm); groove {TONGUE_W + 2 * TONGUE_CLR:.1f} x {GROOVE_DEPTH:.1f} mm")
+    print(f"plates: title {TITLE_BOX[3] - TITLE_BOX[1]:.1f}, art {ART[2] - ART[0]:.1f} x {ART[3] - ART[1]:.1f}, "
+          f"footer {FOOTER[3] - FOOTER[1]:.1f} mm tall; windows {WIN_WH[0]:.1f} x {WIN_WH[1]:.1f}; digits {DIGIT_H} mm")
+    return dict(card=card, whs=whs, spacer=spacer, base=card, tongue=ridge, pins=pins, sockets=sockets)
 
 
 # ---- the card frame (shared with vampire-arcana) -------------------------------
@@ -499,9 +458,10 @@ class Canvas:
         self.r[colour] = self.r[colour].union(g)
 
 
-def bat(c, span, tilt=0.0):
+def bat(c, span, tilt=0.0, bank=0.0):
     """A bat silhouette, wingspan `span` mm, centred on c: smooth leading edge, 3 round scallops
-    bitten out of each wing's trailing edge, a round body and two ears."""
+    bitten out of each wing's trailing edge, a round body and two ears. `bank` turns the wings (not
+    the body, head and ears) by that many degrees: a bat banking, its wing line a diagonal."""
     wing = spline([(0.02, 0.06), (0.14, 0.15), (0.30, 0.20), (0.44, 0.19), (0.50, 0.13),
                    (0.47, 0.02), (0.30, -0.05), (0.10, -0.09), (0.02, -0.06)])
     bites = [disk((x, y), r, 24) for x, y, r in ((0.42, -0.045, 0.065), (0.29, -0.10, 0.075), (0.15, -0.135, 0.07))]
@@ -509,33 +469,60 @@ def bat(c, span, tilt=0.0):
     body = affinity.scale(disk((0, 0), 1, 24), 0.055, 0.12)
     head = disk((0, 0.11), 0.05, 16)
     ear = Polygon([(0.012, 0.13), (0.05, 0.20), (0.055, 0.12)])
-    g = unary_union([wing, mirror(wing, 0), body, head, ear, mirror(ear, 0)]).buffer(0.008).buffer(-0.008)
+    wings = affinity.rotate(unary_union([wing, mirror(wing, 0)]), bank, origin=(0, 0))
+    g = unary_union([wings, body, head, ear, mirror(ear, 0)]).buffer(0.008).buffer(-0.008)
     g = affinity.scale(g, span, span, origin=(0, 0))
     return affinity.translate(affinity.rotate(g, tilt, origin=(0, 0)), *c)
 
 
+def slash_bat_shape(c, length, angle, width=2.4):
+    """A bat whose spread wings ARE a "/": drawn level (wings along x, head up), then turned `angle`
+    degrees, so the wing line is the slash and the head points up-left, square to it. `length` is tip to
+    tip, `width` the wing's depth. Each wing: a straight leading edge hooking up at the tip, and three
+    pointed fingers with round scallops between them along the trailing edge."""
+    L, w = length / 2, width
+    fx = [0.30 * L, 0.56 * L, 0.80 * L]                      # finger tips on the trailing edge
+    wing = Polygon([(0.0, 0.45 * w), (0.70 * L, 0.55 * w), (L, 0.95 * w), (fx[2], -0.55 * w),
+                    (fx[1], -0.55 * w), (fx[0], -0.50 * w), (0.0, -0.40 * w)])
+    bites = []
+    for a, b in ((0.0, fx[0]), (fx[0], fx[1]), (fx[1], fx[2])):
+        r = (b - a) * 0.60
+        bites.append(Point((a + b) / 2, -0.55 * w - r * 0.40).buffer(r, quad_segs=24))
+    wing = wing.difference(unary_union(bites))
+    body = affinity.scale(Point(0, -0.15 * w).buffer(1, quad_segs=24), 0.42 * w, 0.75 * w)
+    head = Point(0, 0.72 * w).buffer(0.36 * w, quad_segs=16)
+    ears = unary_union([Polygon([(dx * 0.10 * w, 0.85 * w), (dx * 0.36 * w, 1.40 * w), (dx * 0.38 * w, 0.70 * w)])
+                        for dx in (-1, 1)])
+    g = unary_union([wing, mirror(wing, 0), body, head, ears]).buffer(0.06).buffer(-0.06)
+    return affinity.translate(affinity.rotate(g, angle, origin=(0, 0)), *c)
+
+
+def slash_bat():
+    """The P/T slash between the two windows: a bat whose spread wings form the "/"."""
+    a, b = window("power").bounds, window("toughness").bounds
+    c = ((a[2] + b[0]) / 2, (a[1] + a[3]) / 2)
+    return slash_bat_shape(c, SLASH_BAT_LEN, SLASH_BAT_ANGLE, SLASH_BAT_W)
+
+
 def frame(cv):
     """Paint the card's frame: black edge and rules (the canvas starts black), white title, art and
-    footer plates, the title, and the dial window's ruled box with a bat either side.
-    Returns the art plate, which the scene is clipped to."""
+    footer plates, the title, the two dial windows' ruled boxes (power bottom-left, toughness
+    bottom-right) and the bat-shaped slash between them. Returns the art plate, which the scene is clipped to."""
     title_in, art_in, foot_in = rrect(TITLE_BOX, PLATE_R), rrect(ART, PLATE_R), rrect(FOOTER, PLATE_R)
     for g in (title_in, art_in, foot_in):
         cv.paint(PAPER, g)
     cv.paint(INK, title_text())
-    mo = mouth()
-    cv.paint(INK, mo.buffer(WIN_RULE, join_style="round"))       # its bottom runs into the card's edge
-    cv.paint(PAPER, mo)
-    fr = mo.buffer(WIN_RULE).bounds
-    lx, rx = (FOOTER[0] + fr[0]) / 2, (fr[2] + FOOTER[2]) / 2
-    fy = (FOOTER[1] + fr[3]) / 2                                 # level with the window's box
-    for x in (lx, rx):
-        cv.paint(INK, bat((x, fy), FOOTER_BAT, 0.0), foot_in)
+    for name, _ in WHEELS:
+        win = window(name)
+        cv.paint(INK, win.buffer(WIN_MAT + WIN_RULE, join_style="round"))
+        cv.paint(PAPER, win.buffer(WIN_MAT, join_style="round"))
+    cv.paint(INK, slash_bat(), foot_in)
     return art_in
 
 
 def finish(cv, card):
-    """After the scene: clear the window's mouth again, then make every region printable and snappable."""
-    cv.paint(PAPER, mouth())
+    """After the scene: clear the window mats again, then make every region printable and snappable."""
+    cv.paint(PAPER, window().buffer(WIN_MAT, join_style="round"))
     regions = {k: g.intersection(card).buffer(0) for k, g in cv.r.items()}
     regions = absorb_islands(fill_slivers(regions))
     return {k: tidy(g) for k, g in regions.items()}
@@ -629,134 +616,85 @@ def report(card, regions, back):
                   + (f", small islands {[round(a, 2) for a in small]}" if small else ""))
 
 
-def overlap(a, b):
-    """Largest area two parts' bands (z0, z1, shape, slot) share in any common z range."""
-    worst = 0.0
-    for z0, z1, g, _ in a:
-        for y0, y1, h, _ in b:
-            if min(z1, y1) - max(z0, y0) < 1e-6 or g.is_empty or h.is_empty:
-                continue
-            gb, hb = g.bounds, h.bounds
-            if gb[2] < hb[0] or hb[2] < gb[0] or gb[3] < hb[1] or hb[3] < gb[1]:
-                continue
-            worst = max(worst, g.intersection(h).area)
-    return worst
+def assembly_check(front, back_parts, wheels):
+    """Assemble the parts AS PRINTED (not the design shapes): flip the face-down front and wheels over,
+    drop each wheel on its pin on the back, and check the fits (tongue in groove, pins in their sockets,
+    hubs on the pins) and that every value of each wheel sits centred in its own window. This catches a
+    print transform that is wrong (the v2 back was mirrored, which the design-frame asserts could not see)."""
+    card = vt.rounded_rect(CARD_W, CARD_H, CORNER_R)
+    wins = card.difference(mirror(front[4][2], CX))             # front flipped over about the card's axis
+    grooves = card.difference(wins).difference(mirror(front[5][2], CX))
+    pins, ridge = back_parts[6][2], back_parts[7][2]            # the back as printed, cavity up
+    assert grooves.buffer(-(TONGUE_CLR - 0.02)).contains(ridge), f"the tongue doesn't clear its groove by {TONGUE_CLR}"
+    assert not grooves.buffer(-(TONGUE_CLR + 0.02)).contains(ridge), f"the groove is looser than {TONGUE_CLR}"
+    assert grooves.buffer(-(SOCKET_D_CLR - 0.02)).contains(pins), "a pin doesn't clear its socket"
+    worst, hubs = 0.0, []
+    for (name, spin), (wx, ink, disc) in zip(WHEELS, wheels):
+        ink, disc = mirror(ink, wx), mirror(disc, wx)          # wheel flipped over, face toward the window
+        hole = Polygon(disc.interiors[0])
+        hc = np.array(hole.centroid.coords[0])
+        pin = min(pins.geoms, key=lambda p: np.hypot(*(np.array(p.centroid.coords[0]) - WHEEL_C[name])))
+        pc = np.array(pin.centroid.coords[0])
+        assert np.allclose(pc, WHEEL_C[name], atol=0.01), f"printed {name} pin at {pc}, design {WHEEL_C[name]}"
+        ink, disc, hole = (affinity.translate(g, *(pc - hc)) for g in (ink, disc, hole))
+        hubs.append(hole.exterior.distance(pin.centroid) - PIN_D / 2)
+        assert abs(hubs[-1] - PIN_CLR) < 0.02, f"{name} hub clearance {hubs[-1]:.2f} mm"
+        win = window(name)
+        wc = np.array(win.centroid.coords[0])
+        assert wins.buffer(-0.01).contains(win.buffer(-0.02)), f"no window cut over the {name} wheel"
+        for v in VALUES:
+            shown = affinity.rotate(ink, spin * STEP * (v - 1), origin=tuple(pc)).intersection(win)
+            want = digit_text(v, win_centre(name))
+            assert abs(shown.area - want.area) < 0.01 * want.area, f"{name} {v}: window shows the wrong ink"
+            b = np.array(shown.bounds)
+            err = np.hypot((b[0] + b[2]) / 2 - wc[0], (b[1] + b[3]) / 2 - wc[1])   # ink box centre vs window
+            worst = max(worst, err)
+            assert err < 0.1, f"{name} {v} is {err:.2f} mm off the window centre"
+    print(f"assembly check (parts as printed): pins on the wheel centres with {min(hubs):.2f} mm hub clearance, "
+          f"tongue and pins {TONGUE_CLR} mm inside their grooves; both wheels show all {len(VALUES)} values "
+          f"centred in their windows (worst {worst:.3f} mm), counting up with the rim pushed up")
 
 
-def merge_slices(slices):
-    """Join consecutive depth slices (d0, d1, key, shape) that share a key."""
-    out = []
-    for d0, d1, key, g in slices:
-        if out and out[-1][2] == key and abs(out[-1][1] - d0) < 1e-9:
-            out[-1] = (out[-1][0], d1, key, out[-1][3])
-        else:
-            out.append((d0, d1, key, g))
-    return out
-
-
-def front_bands(card, regions, sockets):
-    """The front as it prints (face-down, mirrored), sliced by depth below the face, one slice per
-    layer: the colour inlay round the bevel's mouth, the bevel stepping in to the window, then the
-    straight window with the peg and pin sockets."""
-    n_inlay = int(round(INLAY / LAYER))
-    slices = []
-    for i in range(int(round(FRONT_T / LAYER))):
-        d0, d1 = i * LAYER, (i + 1) * LAYER
-        f = max(0.0, 1.0 - max(0, i + 1 - n_inlay) / BEVEL_STEPS)
-        socketed = d0 >= FRONT_T - SOCKET_DEPTH - 1e-9
-        g = card.difference(opening(f))
-        slices.append((d0, d1, (round(f, 4), socketed), g.difference(sockets) if socketed else g))
-    bands = []
-    for d0, d1, _, g in merge_slices(slices):
-        if d1 <= INLAY + 1e-9:
-            bands += [(d0, d1, mirror(regions[k].difference(mouth()), CX), k) for k in range(4)]
-        else:
-            bands.append((d0, d1, mirror(g, CX), PAPER))
-    return bands
-
-
-def assembly_check(front, back_parts, wheel, wx):
-    """Assemble the parts AS PRINTED (not the design shapes): turn the face-down front and wheel over,
-    drop the wheel on the back's pin, and check that no two parts share any volume, that every value
-    sits centred in the front's window with the detent nub seated symmetrically in a notch, and that
-    a notch rests at the bottom of the rim. This catches a print transform that is wrong (the v2 back
-    was mirrored, which the design-frame asserts in mechanism() could not see).
-    Returns the assembly as {part: bands}."""
-    turn = lambda bands, axis, z_face: [(z_face - z1, z_face - z0, mirror(g, axis), s)
-                                        for z0, z1, g, s in bands if not g.is_empty]
-    at = lambda b, z0, z1: abs(b[0] - z0) < 1e-6 and abs(b[1] - z1) < 1e-6
-    arm = next(b for b in back_parts if at(b, 0.0, BACK_T - ARM_TOP_CLR))
-    pin = next(b for b in back_parts if at(b, BASE_T, BACK_T + PEG_H))[2]
-    body = [b for b in back_parts if b is not arm and not b[2].is_empty]      # the back as printed, cavity up
-    front_a = turn(front, CX, BACK_T + FRONT_T)
-    wheel_a = turn(wheel, wx, BASE_T + WHEEL_T)                              # face toward the window
-    disc = max((b[2] for b in wheel_a), key=lambda g: g.area)
-    pc, hc = np.array(pin.centroid.coords[0]), np.array(Polygon(disc.interiors[0]).centroid.coords[0])
-    assert np.allclose(pc, C, atol=0.01), f"printed pin at {pc}, design wheel centre {C}"
-    wheel_a = [(z0, z1, affinity.translate(g, *(pc - hc)), s) for z0, z1, g, s in wheel_a]
-    disc = max((b[2] for b in wheel_a), key=lambda g: g.area)
-    ink = next(g for _, _, g, s in wheel_a if s == INK)
-    for a, b, what in ((front_a, body, "front and back"), (front_a, wheel_a, "front and wheel"),
-                       (body, wheel_a, "back and wheel")):                  # the arm preloads the wheel: below
-        ov = overlap(a, b)
-        assert ov < 0.01, f"{what} collide ({ov:.3f} mm^2): a peg without a socket, or a part mirrored wrongly"
-    # nub seated: turning the wheel a hair either way must load it equally (a centred V notch)
-    ov = [arm[2].intersection(affinity.rotate(disc, d, origin=tuple(pc))).area for d in (-0.5, 0.0, 0.5)]
-    assert ov[1] > 0 and abs(ov[0] - ov[2]) < 0.02 * max(ov), f"nub not centred in a notch: {ov}"
-    # the window as built: the largest hole in the front's deepest band
-    deep = min(front_a, key=lambda b: b[0])[2]
-    win = max((Polygon(r) for r in deep.interiors), key=lambda g: g.area)
-    wc = np.array(win.centroid.coords[0])
-    worst = 0.0
-    for v in VALUES:
-        shown = affinity.rotate(ink, STEP * (v - 1), origin=tuple(pc)).intersection(win)
-        want = nn_text(v, WIN_C)
-        assert abs(shown.area - want.area) < 0.01 * want.area, f"{v}/{v}: window shows the wrong ink"
-        b = np.array(shown.bounds)
-        err = np.hypot((b[0] + b[2]) / 2 - wc[0], (b[1] + b[3]) / 2 - wc[1])   # ink box centre vs window
-        worst = max(worst, err)
-        assert err < 0.1, f"{v}/{v} is {err:.2f} mm off the window centre"
-    R = np.hypot(*(np.array(disc.exterior.coords) - pc).T).max()
-    low = disc.intersection(box(pc[0] - 0.3, pc[1] - R - 1, pc[0] + 0.3, pc[1] - R + 3))
-    assert low.bounds[1] > pc[1] - R + 0.5 * NOTCH_DEPTH, "no notch at the bottom of the rim at rest"
-    print(f"assembly check (parts as printed): no collisions; pin on the wheel centre; nub centred in a notch; "
-          f"all {len(VALUES)} values centred in the window (worst {worst:.3f} mm); a notch rests at the bottom "
-          f"of the rim")
-    return dict(back=[arm] + body, wheel=wheel_a, front=front_a)
+def slicer_args(line="Bambu PLA Basic"):
+    """The preset and --set arguments for tools/slice_bambu.py (preset names quoted). `line` swaps the
+    filament product line in the filament preset (e.g. "Bambu PLA Matte"), keeping its printer/nozzle suffix."""
+    pre = " ".join(f'{a} "{b.replace("Bambu PLA Basic", line) if a == "--filament" else b}"'
+                   for a, b in zip(SLICER_PRESETS[::2], SLICER_PRESETS[1::2]))
+    return pre + " " + " ".join("--set " + x for x in SLICER_SET)
 
 
 def write_plate(m, regions, back, parts_dir):
-    """Write the face-down plate (front, back, wheel side by side) as colour-part STLs + slice args.
-    Front and wheel lie face-down, so their 2D shapes are mirrored. The back lies on its back face with
+    """Write the face-down plate (front, back, two wheels) as colour-part STLs + slice args.
+    Front and wheels lie face-down, so their 2D shapes are mirrored. The back lies on its back face with
     the cavity up, so seen from above it is already in the front-view frame: its mechanism is NOT
-    mirrored (v2 mirrored it, so the wheel sat on the wrong side and the window saw the ring ~22 deg
-    off a detent position, half a value). Only its art is mirrored, as it is drawn as seen from behind."""
+    mirrored (v2 mirrored it, so the wheel sat on the wrong side). Only its art is mirrored, as it is
+    drawn as seen from behind."""
     parts_dir.mkdir(parents=True, exist_ok=True)
     for f in parts_dir.glob("*.stl"):
         f.unlink()
-    card, wh = m["card"], m["wh"]
+    card, win = m["card"], window()
     mx = CX
-    digits = unary_union(wh["groups"])
-    front = front_bands(card, regions, m["sockets"])
-    arm_top = BACK_T - ARM_TOP_CLR
+    front = [(0.0, INLAY, mirror(regions[k].difference(win), mx), k) for k in range(4)] + [
+        (INLAY, FRONT_T - GROOVE_DEPTH, mirror(card.difference(win), mx), PAPER),
+        (FRONT_T - GROOVE_DEPTH, FRONT_T, mirror(card.difference(win).difference(m["sockets"]), mx), PAPER)]
     back_parts = [(0.0, INLAY, mirror(back[k], mx).intersection(m["base"]), k) for k in range(4)] + [
         (INLAY, BASE_T, m["base"], PAPER),
-        (0.0, arm_top, m["arm"], PAPER),                  # stands free in a slot through the plate
         (BASE_T, BACK_T, m["spacer"], PAPER),
-        (BASE_T, BACK_T + PEG_H, disk(C, PIN_D / 2, 32), PAPER),
-        (BACK_T, BACK_T + PEG_H, m["pegs"], PAPER)]
-    wx = C[0]
-    wheel = [(0.0, INLAY, mirror(digits, wx), INK),
-             (0.0, INLAY, mirror(wh["disc"].difference(digits), wx), PAPER),
-             (INLAY, WHEEL_T, mirror(wh["disc"], wx), PAPER)]
-    asm = assembly_check(front, back_parts, wheel, wx)
-    section_preview(asm, [(C[0], (-PROTRUDE - 1, CARD_H + 1), 4.0, f"through the window and axle (x = {C[0]:.1f}), z x4"),
-                          (C[0], (-PROTRUDE - 1, 24.0), 1.0, "window and bevel, true scale")],
-                    parts_dir.parent / "section_preview.png")
-    R = wh["R"]
-    wheel_off = (2 * (CARD_W + PLATE_GAP) + R - C[0], R - C[1] + 2)
-    objects = [("front", (0.0, 0.0), front), ("back", (CARD_W + PLATE_GAP, 0.0), back_parts),
-               ("wheel", wheel_off, wheel)]
+        (BASE_T, BACK_T + TONGUE_H, m["pins"], PAPER),
+        (BACK_T, BACK_T + TONGUE_H, m["tongue"], PAPER)]
+    wheels, checks = [], []
+    R = m["whs"][0]["R"]
+    for i, wh in enumerate(m["whs"]):
+        wx = wh["C"][0]
+        digits = unary_union(wh["groups"])
+        parts = [(0.0, INLAY, mirror(digits, wx), INK),
+                 (0.0, INLAY, mirror(wh["disc"].difference(digits), wx), PAPER),
+                 (INLAY, WHEEL_T, mirror(wh["disc"], wx), PAPER)]
+        checks.append((wx, parts[0][2], parts[2][2]))
+        off = (2 * (CARD_W + PLATE_GAP) + R - wx, R - wh["C"][1] + 2 + i * (2 * R + PLATE_GAP))
+        wheels.append((wh["name"], off, parts))
+    assembly_check(front, back_parts, checks)
+    objects = [("front", (0.0, 0.0), front), ("back", (CARD_W + PLATE_GAP, 0.0), back_parts)] + wheels
     files, slots = [], []
     grams = [0.0] * 4
     for name, off, parts in objects:
@@ -772,48 +710,16 @@ def write_plate(m, regions, back, parts_dir):
             files.append(fn.name)
             slots.append(slot + 1)
             grams[slot] += g.area * (z1 - z0) / 1000 * 1.24
-            print(f"  {fn.name:22s} z {z0:.1f}-{z1:.1f}  {g.area * (z1 - z0) / 1000:.2f} cm^3")
-    (parts_dir / "slice_args.txt").write_text(
-        " ".join(files) + f" --assemble --extruders {','.join(map(str, slots))} "
-        f"--colors \"{','.join(h for _, h in PALETTE)}\" " + " ".join("--set " + x for x in SLICER_SET) + "\n")
+            print(f"  {fn.name:24s} z {z0:.1f}-{z1:.1f}  {g.area * (z1 - z0) / 1000:.2f} cm^3")
+    for f in parts_dir.glob("slice_args*.txt"):
+        f.unlink()
+    for name in filaments.PALETTES:
+        spools, ams_slot, line = filaments.ams(name)
+        (parts_dir / ("slice_args.txt" if name == "original" else f"slice_args_{name}.txt")).write_text(
+            " ".join(files) + f" --assemble --extruders {','.join(str(ams_slot[s - 1]) for s in slots)} "
+            f"--colors \"{','.join(filaments.FILAMENTS[f][1] for f in spools)}\" " + slicer_args(line) + "\n")
     print("model grams per slot (PLA 1.24 g/cm^3, solid, before purge): " +
           ", ".join(f"{i + 1} {PALETTE[i][0]} {g:.2f}" for i, g in enumerate(grams)))
-
-
-SECTION_TONES = dict(back="#7a6a58", wheel="#1f5fa8", front="#b03a2e")
-
-
-def section_preview(asm, cuts, path, tones=None, boxes=()):
-    """Side sections (y across, z up) of re-assembled parts {name: bands}.
-    cuts: [(x, (y0, y1), z scale, title)]; boxes: [(cut index, (y, z, w, h))] drawn grey (magnets)."""
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-    from matplotlib.patches import Patch, Rectangle
-    tones = tones or SECTION_TONES
-    z_top = max(b[1] for bands in asm.values() for b in bands)
-    fig_, axes = plt.subplots(len(cuts), 1, figsize=(17, 3.7 * len(cuts)), squeeze=False)
-    for i, (ax, (x, (y0, y1), zs, title)) in enumerate(zip(axes[:, 0], cuts)):
-        line = LineString([(x, -50), (x, 300)])
-        for name, bands in asm.items():
-            for z0, z1, g, _ in bands:
-                cut = g.intersection(line)
-                for seg in getattr(cut, "geoms", [cut]):
-                    if seg.is_empty or seg.geom_type != "LineString":
-                        continue
-                    a, b = seg.coords[0][1], seg.coords[-1][1]
-                    ax.add_patch(Rectangle((a, z0), b - a, z1 - z0, facecolor=tones[name], edgecolor="none"))
-        for j, (y, z, w, h) in boxes:
-            if j == i:
-                ax.add_patch(Rectangle((y, z), w, h, facecolor="#8d939b", edgecolor="k", lw=0.5))
-        ax.set_xlim(y0, y1); ax.set_ylim(-0.6, z_top + 0.8); ax.set_aspect(zs)
-        ax.set_title(title, fontsize=9); ax.set_xlabel("y (mm)"); ax.set_ylabel("z (mm)")
-        ax.legend(handles=[Patch(facecolor=c, label=n) for n, c in tones.items() if n in asm],
-                  loc="upper right", fontsize=8, ncol=len(tones))
-    plt.tight_layout()
-    plt.savefig(path, dpi=110)
-    plt.close(fig_)
-    print(f"preview -> {path}")
 
 
 # ---- this card's scene: flat colour --------------------------------------------
@@ -858,9 +764,9 @@ def knight(cv, clip):
     # red cloak behind everything, flaring past the art plate's bottom corners, with black folds
     cloak = spline(sym_pts([(0, -7.0), (-10.0, -8.6), (-18.5, -12.2), (-24.5, -18.5), (-28.0, -26.0),
                             (-31.5, -36.0), (0, -36.0)]), n=400)
-    cv.paint(BLOOD, at(cloak), clip)
+    cv.paint(BLOOD, at(cloak_widen(cloak)), clip)          # v4: widened with the art plate
     for f in ([(-22.0, -17.6), (-24.2, -23.5), (-25.8, -33.5)], [(-19.5, -20.0), (-20.6, -26.0), (-21.2, -33.5)]):
-        cv.paint(INK, at(S(taper(f, 0.9, 1.4))), clip)
+        cv.paint(INK, at(S(cloak_widen(taper(f, 0.9, 1.4)))), clip)
     # breastplate, with a gold plate seam (the fauld) either side of the sword. The art plate ends at
     # local y -31, so there is room for one seam: low enough to clear the quillon tips by over a bead.
     chest = spline(sym_pts([(0, -11.5), (-7.8, -12.2), (-10.4, -17.0), (-11.6, -25.0), (-12.0, -36.0), (0, -36.0)]))
@@ -921,22 +827,24 @@ def front_regions(card):
     cv = Canvas(card)
     clip = frame(cv)
     x0, _, x1, _ = ART
+    # v4 (wider card): left-side elements stay anchored to the left edge, right-side ones to the right
+    # edge (xr), and the ones grouped round the moon follow the centre (xc)
     for c in (streak(x0 - 1, 23.0, 67.8, 2.2), streak(x0 - 1, 13.0, 64.0, 1.5, -0.3),
-              streak(41.0, x1 + 1, 69.4, 2.0, -0.4), streak(43.0, x1 + 1, 49.2, 2.2),
-              streak(47.0, x1 + 1, 45.6, 1.4, -0.3), streak(x0 - 1, 18.0, 51.8, 2.0, -0.3),
+              streak(xr(41.0), x1 + 1, 69.4, 2.0, -0.4), streak(xr(43.0), x1 + 1, 49.2, 2.2),
+              streak(xr(47.0), x1 + 1, 45.6, 1.4, -0.3), streak(x0 - 1, 18.0, 51.8, 2.0, -0.3),
               streak(x0 - 1, 12.5, 48.4, 1.3)):
         cv.paint(GOLD, c, clip)
     cv.paint(BLOOD, disk(MOON_C, MOON_R, 128), clip)
-    cv.paint(GOLD, streak(38.5, 55.0, 61.6, 1.7, 0.3), clip)          # one streak across the moon
+    cv.paint(GOLD, streak(xc(38.5), xc(55.0), 61.6, 1.7, 0.3), clip)    # one streak across the moon
     castle = unary_union([
         tower(x0 - 1, 8.2, 39.7, 10.0), tower(8.2, 11.6, 34.7, 7.0), tower(11.6, 15.0, 30.7, 5.0),
-        tower(54.6, x1 + 1, 42.2, 11.0), tower(51.0, 54.6, 36.2, 7.5), tower(47.6, 51.0, 31.2, 5.0),
-        box(x0 - 1, 18.0, 16.0, 28.2), box(47.0, 18.0, x1 + 1, 28.7)])
+        tower(xr(54.6), x1 + 1, 42.2, 11.0), tower(xr(51.0), xr(54.6), 36.2, 7.5), tower(xr(47.6), xr(51.0), 31.2, 5.0),
+        box(x0 - 1, 18.0, 16.0, 28.2), box(xr(47.0), 18.0, x1 + 1, 28.7)])
     cv.paint(INK, castle, clip)
-    for w in (lancet(5.0, 35.2, 1.4, 3.2), lancet(57.6, 37.7, 1.4, 3.4), lancet(52.8, 32.8, 1.3, 2.6)):
+    for w in (lancet(5.0, 35.2, 1.4, 3.2), lancet(xr(57.6), 37.7, 1.4, 3.4), lancet(xr(52.8), 32.8, 1.3, 2.6)):
         cv.paint(BLOOD, w, clip)
-    for c, span, tilt in (((19.5, 64.2), 12.5, 8.0), ((44.5, 66.2), 8.5, -6.0), ((53.0, 58.7), 6.5, 10.0),
-                          ((41.0, 58.7), 5.5, -12.0)):
+    for c, span, tilt in (((xc(19.5), 64.2), 12.5, 8.0), ((xc(44.5), 66.2), 8.5, -6.0),
+                          ((xc(53.0), 58.7), 6.5, 10.0), ((xc(41.0), 58.7), 5.5, -12.0)):
         cv.paint(INK, bat(c, span, tilt), clip)
     knight(cv, clip)
     return finish(cv, card)
@@ -949,13 +857,13 @@ def nozzle_sim(g):
     return g.buffer(-0.21).buffer(0.21).buffer(0.15).buffer(-0.15)
 
 
-def draw_face(ax, regions, wh, v, sim=False):
+def draw_face(ax, regions, whs, pt, sim=False):
+    """The card's face with the power and toughness wheels turned to pt = (p, t)."""
     hexes = [h for _, h in PALETTE]
-    rot = STEP * (v - 1)
-    win = mouth()
-    vd.draw(ax, affinity.rotate(wh["disc"], rot, origin=tuple(C)), hexes[PAPER])
-    vd.draw(ax, affinity.rotate(unary_union(wh["groups"]), rot, origin=tuple(C)), hexes[INK])
-    vd.draw(ax, win.difference(window()), "#d5cfc2")              # the bevel
+    win = window()
+    for wh, v in zip(whs, pt):
+        vd.draw(ax, turned(wh["disc"], wh, v), hexes[PAPER])
+        vd.draw(ax, turned(unary_union(wh["groups"]), wh, v), hexes[INK])
     vd.draw(ax, regions[PAPER].difference(win), hexes[PAPER])
     for k in (INK, BLOOD, GOLD):
         g = regions[k].difference(win)
@@ -963,51 +871,75 @@ def draw_face(ax, regions, wh, v, sim=False):
     ax.set_aspect("equal"); ax.set_facecolor("#9aa0a6"); ax.set_xticks([]); ax.set_yticks([])
 
 
-def preview(regions, back, wh, path):
+def preview(regions, back, whs, path):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    fig_, axes = plt.subplots(1, 5, figsize=(22, 6.6))
-    for ax, (v, sim, t) in zip(axes, [(1, False, "1/1"), (5, False, "5/5"), (9, False, "9/9"),
-                                      (1, True, "nozzle simulation (ink, red, gold opened 0.42 mm)")]):
-        draw_face(ax, regions, wh, v, sim)
-        ax.set_xlim(-1, CARD_W + 1); ax.set_ylim(-PROTRUDE - 1.5, CARD_H + 1); ax.set_title(t, fontsize=9)
+    fig_, axes = plt.subplots(1, 5, figsize=(24, 6.6))
+    xl = (-PROTRUDE - 1, CARD_W + PROTRUDE + 1)
+    for ax, (pt, sim, t) in zip(axes, [((1, 1), False, "1/1"), ((3, 5), False, "3/5"), ((9, 9), False, "9/9"),
+                                       ((2, 2), True, "nozzle simulation (ink, red, gold opened 0.42 mm)")]):
+        draw_face(ax, regions, whs, pt, sim)
+        ax.set_xlim(*xl); ax.set_ylim(-1, CARD_H + 1); ax.set_title(t, fontsize=9)
     ax = axes[4]
     hexes = [h for _, h in PALETTE]
     for k in range(4):
         vd.draw(ax, back[k], hexes[k])
     ax.set_aspect("equal"); ax.set_facecolor("#9aa0a6"); ax.set_xticks([]); ax.set_yticks([])
-    ax.set_xlim(-1, CARD_W + 1); ax.set_ylim(-PROTRUDE - 1.5, CARD_H + 1); ax.set_title("back (as seen from behind)", fontsize=9)
+    ax.set_xlim(*xl); ax.set_ylim(-1, CARD_H + 1); ax.set_title("back (as seen from behind)", fontsize=9)
     plt.tight_layout()
     plt.savefig(path, dpi=150)
     plt.close(fig_)
     print(f"preview -> {path}")
 
 
+def joint_section(ax, x_edge=0.0):
+    """Cross-section through the card edge: back (base + spacer + tongue) under the front (groove)."""
+    t0, t1 = TONGUE_INSET - TONGUE_W / 2, TONGUE_INSET + TONGUE_W / 2
+    g0, g1 = t0 - TONGUE_CLR, t1 + TONGUE_CLR
+    w = 6.0
+    back = unary_union([box(0, 0, w, BACK_T), box(t0, BACK_T, t1, BACK_T + TONGUE_H)])
+    front = box(0, BACK_T, w, BACK_T + FRONT_T).difference(box(g0, BACK_T, g1, BACK_T + GROOVE_DEPTH))
+    vd.draw(ax, back, "#7a6a58")
+    vd.draw(ax, front, "#e8d2a8")
+    vd.draw(ax, box(0, BACK_T + FRONT_T - INLAY, w, BACK_T + FRONT_T), PALETTE[INK][1])
+    ax.set_xlim(-0.5, w); ax.set_ylim(-0.5, BACK_T + FRONT_T + 0.5)
+    ax.set_title(f"joint section at the edge: tongue {TONGUE_W} x {TONGUE_H}, groove "
+                 f"{TONGUE_W + 2 * TONGUE_CLR:.1f} x {GROOVE_DEPTH:.1f} mm", fontsize=9)
+
+
 def parts_preview(m, path):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    card, wh, arm = m["card"], m["wh"], m["arm"]
-    fig_, axes = plt.subplots(1, 3, figsize=(17, 7), gridspec_kw=dict(width_ratios=[1, 1.15, 1]))
-    for ax in axes[:2]:
-        vd.draw(ax, card.difference(m["base"]), "#ffffff")
-        vd.draw(ax, m["base"], "#e8d2a8")
-        vd.draw(ax, m["spacer"], "#7a6a58")
-        vd.draw(ax, arm, "#b03a2e")
-        vd.draw(ax, disk(C, PIN_D / 2), "#3a2d25")
-        vd.draw(ax, m["pegs"], "#3a2d25")
+    card, whs = m["card"], m["whs"]
+    fig_, axes = plt.subplots(1, 4, figsize=(24, 7), gridspec_kw=dict(width_ratios=[1, 1, 0.7, 1.4]))
+    xl = (-PROTRUDE - 1, CARD_W + PROTRUDE + 1)
+    ax = axes[0]
+    vd.draw(ax, m["spacer"], "#7a6a58")
+    vd.draw(ax, card.difference(m["spacer"]), "#e8d2a8")
+    vd.draw(ax, m["tongue"], "#b03a2e")
+    vd.draw(ax, m["pins"], "#3a2d25")
+    for wh in whs:
         ax.plot(*np.asarray(wh["disc"].exterior.coords).T, color="#1f5fa8", lw=0.8)
-    axes[0].set_xlim(-2, CARD_W + 2); axes[0].set_ylim(-PROTRUDE - 2, CARD_H + 2)
-    axes[0].set_title("back: base (beige), spacer (brown), detent (red); wheel outline blue")
-    b = arm.bounds
-    axes[1].set_xlim(b[0] - 2, b[2] + 2); axes[1].set_ylim(b[1] - 3, b[3] + 4)
-    axes[1].set_title("detent: tapered arm, filleted root, nub seated in a V notch")
-    ax = axes[2]
-    vd.draw(ax, wh["disc"], PALETTE[PAPER][1])
-    vd.draw(ax, unary_union(wh["groups"]), PALETTE[INK][1])
-    ax.set_xlim(C[0] - wh["R"] - 1, C[0] + wh["R"] + 1); ax.set_ylim(C[1] - wh["R"] - 1, C[1] + wh["R"] + 1)
-    ax.set_title("wheel (face, digits inlaid): V notches, reeded rim")
+    ax.set_title("back: base (beige), spacer (brown), tongue (red), pins; wheel outlines blue", fontsize=9)
+    ax = axes[1]
+    vd.draw(ax, card.difference(window()), "#e8d2a8")
+    vd.draw(ax, m["sockets"], "#7a6a58")
+    ax.set_title("front underside, in the front-view frame: groove + pin sockets", fontsize=9)
+    for ax in axes[:2]:
+        ax.set_xlim(*xl); ax.set_ylim(-2, CARD_H + 2)
+    joint_section(axes[2])
+    ax = axes[3]
+    R = whs[0]["R"]
+    for i, wh in enumerate(whs):
+        dx = (2 * R + 3) * i - wh["C"][0]
+        sh = lambda g: affinity.translate(g, dx, -wh["C"][1])
+        vd.draw(ax, sh(wh["disc"]), PALETTE[PAPER][1])
+        vd.draw(ax, sh(unary_union(wh["groups"])), PALETTE[INK][1])
+    ax.set_xlim(-R - 1, 3 * R + 4); ax.set_ylim(-R - 1, R + 1)
+    ax.set_title(f"power and toughness wheels (faces, digits inlaid; the power wheel counts the other way "
+                 f"round); hub {PIN_D + 2 * PIN_CLR:.1f} mm on a {PIN_D:.0f} mm pin", fontsize=9)
     for ax in axes:
         ax.set_aspect("equal"); ax.set_xticks([]); ax.set_yticks([])
     plt.tight_layout()
@@ -1025,7 +957,7 @@ def main():
     back = back_regions(card) if BACK_ART else {PAPER: card, INK: Polygon(), BLOOD: Polygon(), GOLD: Polygon()}
     report(card, regions, back)
     write_plate(m, regions, back, PARTS)
-    preview(regions, back, m["wh"], OUT / "counter_preview.png")
+    preview(regions, back, m["whs"], OUT / f"counter_preview{TAG}.png")
     parts_preview(m, OUT / "parts_preview.png")
 
 

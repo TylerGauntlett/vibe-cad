@@ -13,7 +13,9 @@ requirements.txt        pinned Python deps for .venv
 tools/
   new_model.py          scaffold models/<slug>/ from templates/
   check_mesh.py         watertight / volume / size / bed-fit check + preview PNG
-  slice_bambu.py        STL(s) -> sliced A1 .3mf via the installed Bambu Studio (incl. multi-colour AMS)
+  slice_bambu.py        STL(s) -> sliced A1 .3mf via the installed Bambu Studio (incl. multi-colour AMS; 0.4 nozzle defaults)
+  filaments.py          spools on hand (name, hex, Bambu preset) + named card palettes (vampire cards)
+  palette_sheet.py      compare a vampire card's per-palette previews on one sheet
 templates/              model_template.py + model_README.md used by new_model.py
 models/<slug>/
   <module>.py           the parametric model (parameters at the top)
@@ -50,13 +52,25 @@ models/<slug>/
 - **GLB**: only needed for web viewers or the `render-glb` plugin. Not installed or used so far.
 
 ## Printer and materials (defaults; confirm per job if it matters)
-- **Bambu Lab A1**: 256 × 256 × 256 mm build volume, 0.4 mm nozzle, open frame (no enclosure).
+- **Bambu Lab A1**: 256 × 256 × 256 mm build volume, open frame (no enclosure), **0.4 mm nozzle**
+  (back to 0.4 on 2026-11-21; the 0.2 nozzle phase is in git history). Machine preset **Bambu Lab A1 0.4 nozzle**.
 - Bed: **Textured PEI Plate** (the A1's stock plate), with PLA at 65 °C.
-- Filament: **Bambu PLA Basic**. Process: **0.20mm Standard @BBL A1** (15% infill, 2 walls).
+- Filament: **Bambu PLA Basic @BBL A1**. Process: **0.20mm Standard @BBL A1**. These are
+  `slice_bambu.py`'s defaults (also the `SLICER_PRESETS` in the vampire models).
+- Heights: 0.2 mm layers, so a 0.4 mm face-down colour inlay is 2 layers. Models built for 0.10 mm layers
+  (vampire-counter/arcana/dial v3-v4) may have heights that are not multiples of 0.2 mm: re-check before slicing.
+- Art rules: beads ≥ 0.45 mm wide, islands ≥ 1 mm² (see the legibility sections below).
+- Spools on hand, besides the Basic black/red/copper/white: six **Bambu PLA Matte** tan/brown colours: Ivory White,
+  Desert Tan, Caramel, Terracotta, Dark Chocolate, Charcoal. The names, hex values and palettes are in `tools/filaments.py`.
 - Parts larger than about 250 mm on any axis must be split; a part can also be rotated
   diagonally. Put each oversize half on its own plate (the slicer arranges this automatically).
 
 ## Environment (Windows 10, PowerShell)
+Cloud (Linux) sessions also happen. They have no Bambu Studio (so no slicing: leave the 3MF to be regenerated on
+the PC and say so) and no Windows fonts. Models that set text in Windows fonts cache the outlines in
+`models/<slug>/text_cache.json` (`vampire_dial.text_cache()`): a build without the font uses the cache, and a
+build with it refreshes the cache. Check that a fontless rebuild leaves the art STLs unchanged (volumes match).
+
 - Python 3.11 at the system level. **`uv` is not installed**, so ignore the VibeCAD skill's
   `uvx --from build123d` advice and use `.venv\Scripts\python.exe` instead. Recreate the venv with
   `python -m venv .venv; .venv\Scripts\python.exe -m pip install -r requirements.txt`.
@@ -136,6 +150,9 @@ models/<slug>/
 - Traced raster art doesn't survive a 0.4 mm nozzle at card size. Draw the scene as vector shapes (painter's algorithm
   over 4 regions that tile the card) with outlines ≥ 0.7 mm, and absorb any island < 1 mm² into its neighbour.
 - Dial digits: to hide both neighbours, a value W mm wide on a 9-position ring needs a ring radius of about 1.75·W.
+  The user wants power and toughness on **separate wheels** (one digit each, rims out of the left and right edges).
+  A single 8 mm Bahnschrift digit needs r 11.2 → a Ø36.8 wheel, so two need a 70.5 mm card (vampire-counter v4).
+  Pushing a rim up counts up, so the left wheel's digits run the other way round.
   8 mm condensed "N/N" (12 mm wide) → r 21 → a Ø59 wheel, the most a 63 mm card can hold. Scale the slash to the digit height.
   That leaves no room past the digits: for a bottom-edge thumb rim plus a bevelled window the cards use 7.5 mm digits (r 19.75).
 - Woodcut/engraved style (see models/vampire-arcana): black line art on white plus ONE accent reads far clearer than flat
@@ -187,6 +204,11 @@ models/<slug>/
   pocket wall an over-travel stop). For a detent that centres firmly, use V notches (~35° flanks) with a round nub
   seated on both flanks and 0.3–0.4 mm preload, not a small nub in a wide round scallop (see models/vampire-counter).
 - Mating clearance: about **0.15 mm per side** for press- or slide-fit joints on the A1 (elephant-foot compensation is 0.075 mm by default).
+- Glued sandwich parts: join them with a **tongue and groove** round the edge, not pegs (see `vampire_dial.edge_tongue()`):
+  a 1.2 × 0.6 mm ridge 2 mm in from the edge, broken where it nears a cavity, in a groove 0.15 mm per side wider and
+  0.2 mm deeper. A thin line of CA in the groove.
+- Spinning wheels on an axle pin: **0.4 mm radial hub clearance** (0.25 was too snug). A wheel in a snug cavity holds
+  its value by friction, so the user doesn't want a spring detent (it's a failure point).
 - Place split seams in thick regions (e.g. on a crest rather than in a valley) for joint strength.
 - For fabric-wrapped inserts, the model dimension is the bare core: subtract about 2× the fabric thickness plus clearance to fit a cavity.
 
@@ -199,9 +221,9 @@ depth-sorting artifacts, not holes. Trust `open_edges`. View the PNG with the Re
 |---|---|---|
 | Wave jewelry-box insert (11.4×4.9×1", 5 waves + end ramps, 2 dovetailed halves) | `models/wave-insert/` | v4 sliced for A1 (1 plate) |
 | Vampire token card, 4-colour AMS (63×88 mm; flat-light + relief layouts) | `models/vampire-token/` | v2 sliced for A1 |
-| Vampire token with internal 1/1–9/9 dial wheel + detent (63×92×4.8 mm, 3 parts, 4-colour relief) | `models/vampire-dial/` | v1 sliced for A1 |
-| Vampire counter: flat-colour alt art of vampire-arcana (same frame, title, dial, back); hosts the shared frame + dial (centred wheel, thumb rim at the bottom edge, bevelled window, 7.5 mm digits) | `models/vampire-counter/` | v3 sliced for A1, not printed |
-| Vampire arcana: woodcut-tarot restyle of the counter (ink on white, gold moon, blood accents), face-down flat inlay; imports the counter's frame + dial | `models/vampire-arcana/` | v2 sliced for A1, not printed |
+| Vampire token with separate power + toughness wheels, 1–9 each (63×92×4.8 mm, 4 parts, 4-colour relief, tongue-and-groove) | `models/vampire-dial/` | v3 built with 0.10 mm layers, not sliced (slice defaults now 0.4 nozzle) |
+| Vampire counter: flat-colour alt art of vampire-arcana (same frame, title, P/T wheels, back; 70.5×88 mm); hosts the shared frame + mechanism | `models/vampire-counter/` | v4 built with 0.10 mm layers, not sliced (slice defaults now 0.4 nozzle) |
+| Vampire arcana: woodcut-tarot restyle of the counter (ink on white, gold moon, blood accents), face-down flat inlay; imports the counter's frame | `models/vampire-arcana/` | v3 built with 0.10 mm layers, not sliced (slice defaults now 0.4 nozzle) |
 | Vampire cathedral: rule-based blend of the two (flat colour for cloth/glass/gold, woodcut for skin/hair/steel/stone): counter's red cloak, arcana's armour, merged sword, spiked crown, red-lined collar, engraved nave, gold rose window; imports arcana's knight parts + counter | `models/vampire-cathedral/` | v3 sliced for A1, not printed |
 | Token dock: reusable 1/1–9/9 counter base (bottom-edge thumbwheel, bevelled window, 63×69.4×6 mm, same width as the card) + swappable flat 63×88 token cards (cleat toe, 2 magnet bosses, Ø6×2 magnets); imports arcana's scene + counter's dial (same wheel as the one-piece cards) | `models/token-dock/` | v1.2 sliced for A1 (base plate + arcana card plate), not printed |
 | iPhone Duo travel stand: one 8 mm print-in-place slab (122×110 mm) that unfolds into panel + prop leg + base; Ø56×7 puck behind a front lip, offset for the unfolded Duo; 60–73° | `models/duo-travel-stand/` | v1 sliced for A1, not printed |
