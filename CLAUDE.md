@@ -169,6 +169,18 @@ models/<slug>/
 - The dial (wheel, detent, window, checks) lives in `models/vampire-counter/vampire_counter.py`. arcana, cathedral and
   token-dock all import it, so after a change rebuild all four and compare STL hashes for the ones meant to stay put.
 
+## Print-in-place mechanisms (see models/duo-travel-stand)
+- Nest the moving bodies side by side in ONE slab (2.5D) so nothing prints over a gap. Gaps: 0.5 mm in plan,
+  0.4 mm between knuckles, 0.4 mm radial pin-to-bore.
+- Horizontal hinge: knuckle = circle + 45° foot (starts on the bed), pin with a flat underside on a layer line and
+  3 layers above the bore floor, bore roof a truncated teardrop, pin bridges ≤ ~10 mm between the knuckles it joins.
+- A hinge at mid-thickness folds only ±90°. A strut folded back into its panel swings through "straight down" on
+  its way out, so its length must be under the hinge height with the panel upright.
+- Anything near a hinge sweeps a circle about it: check the opening sweep with every body, not only the hinged one
+  (the folded leg's foot hit the base shoulder at 90°). Leave detent nubs out of the pass/fail: they interfere by design.
+- A flat-bottomed barrel has corners at 1.08 × R: give a cradle that seats it R + 0.5.
+- `a.distance_to(b)` gives the true minimum gap between bodies; use it next to `a & b`.
+
 ## Printing design rules of thumb
 - Design parts to print flat on their largest flat face, with no supports. Keep overhangs at or under 45°.
 - Snap/detent springs in PLA: keep the peak flex strain ≤ ~0.6 % (taper the cantilever, fillet its root, make the
@@ -192,3 +204,4 @@ depth-sorting artifacts, not holes. Trust `open_edges`. View the PNG with the Re
 | Vampire arcana: woodcut-tarot restyle of the counter (ink on white, gold moon, blood accents), face-down flat inlay; imports the counter's frame + dial | `models/vampire-arcana/` | v2 sliced for A1, not printed |
 | Vampire cathedral: rule-based blend of the two (flat colour for cloth/glass/gold, woodcut for skin/hair/steel/stone): counter's red cloak, arcana's armour, merged sword, spiked crown, red-lined collar, engraved nave, gold rose window; imports arcana's knight parts + counter | `models/vampire-cathedral/` | v3 sliced for A1, not printed |
 | Token dock: reusable 1/1–9/9 counter base (bottom-edge thumbwheel, bevelled window, 63×69.4×6 mm, same width as the card) + swappable flat 63×88 token cards (cleat toe, 2 magnet bosses, Ø6×2 magnets); imports arcana's scene + counter's dial (same wheel as the one-piece cards) | `models/token-dock/` | v1.2 sliced for A1 (base plate + arcana card plate), not printed |
+| iPhone Duo travel stand: one 8 mm print-in-place slab (122×110 mm) that unfolds into panel + prop leg + base; Ø56×7 puck behind a front lip, offset for the unfolded Duo; 60–73° | `models/duo-travel-stand/` | v1 sliced for A1, not printed |
