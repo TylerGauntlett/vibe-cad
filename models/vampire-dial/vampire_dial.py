@@ -188,8 +188,8 @@ PLATE_GAP = 8.0                 # spacing of the three objects on the bed
 # the letters left uncovered, streamer still solid, black top-layer gaps 19 -> 18.
 # v2: 0.2 mm nozzle, 0.10 mm layers (every band and height here is a multiple of 0.1 mm). Those
 # measurements were made on the 0.4 nozzle; the settings are in % of the nozzle, so they carry over.
-SLICER_PRESETS = ["--machine", "Bambu Lab A1 0.2 nozzle", "--process", "0.10mm Standard @BBL A1 0.2 nozzle",
-                  "--filament", "Bambu PLA Basic @BBL A1 0.2 nozzle"]
+SLICER_PRESETS = ["--machine", "Bambu Lab A1 0.4 nozzle", "--process", "0.20mm Standard @BBL A1",
+                  "--filament", "Bambu PLA Basic @BBL A1"]
 SLICER_SET = ["wall_generator=arachne", "wall_transition_angle=30", "wall_transition_filter_deviation=50%",
               "min_bead_width=50%", "wall_transition_length=50%"]
 # ---------------------------------------------------------------------------

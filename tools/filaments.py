@@ -9,7 +9,7 @@ filament differs a little; Ivory White in particular is a warm off-white, not #F
 """
 
 # name -> (Bambu product line, swatch hex, Bambu Studio filament preset family; the model appends the
-# printer/nozzle suffix, e.g. "Bambu PLA Matte" -> "Bambu PLA Matte @BBL A1 0.2 nozzle")
+# printer/nozzle suffix, e.g. "Bambu PLA Matte" -> "Bambu PLA Matte @BBL A1")
 MATTE = "Bambu PLA Matte"
 BASIC = "Bambu PLA Basic"
 FILAMENTS = {

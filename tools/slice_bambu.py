@@ -6,9 +6,9 @@ plate goes onto its own plate (auto-arrange).
 
 Usage:
     python tools\\slice_bambu.py part1.stl [part2.stl ...] -o out\\name_A1.3mf
-        [--machine "Bambu Lab A1 0.2 nozzle"]      (0.2 nozzle is the default since 2026-11-17)
-        [--process "0.10mm Standard @BBL A1 0.2 nozzle"]
-        [--filament "Bambu PLA Basic @BBL A1 0.2 nozzle"]
+        [--machine "Bambu Lab A1 0.4 nozzle"]      (0.4 nozzle is the default)
+        [--process "0.20mm Standard @BBL A1"]
+        [--filament "Bambu PLA Basic @BBL A1"]
         [--bed "Textured PEI Plate"]
         [--set key=value ...]            override process settings (e.g. wall_generator=arachne)
 
@@ -164,9 +164,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("stl", nargs="+")
     ap.add_argument("-o", "--output", required=True, help="destination .3mf")
-    ap.add_argument("--machine", default="Bambu Lab A1 0.2 nozzle")   # 0.4: "Bambu Lab A1 0.4 nozzle"
-    ap.add_argument("--process", default="0.10mm Standard @BBL A1 0.2 nozzle")   # 0.4: "0.20mm Standard @BBL A1"
-    ap.add_argument("--filament", default="Bambu PLA Basic @BBL A1 0.2 nozzle")   # 0.4: "Bambu PLA Basic @BBL A1"
+    ap.add_argument("--machine", default="Bambu Lab A1 0.4 nozzle")  
+    ap.add_argument("--process", default="0.20mm Standard @BBL A1")  
+    ap.add_argument("--filament", default="Bambu PLA Basic @BBL A1")  
     ap.add_argument("--bed", default="Textured PEI Plate",
                     help='"Textured PEI Plate", "Cool Plate", "Engineering Plate", "High Temp Plate"')
     ap.add_argument("--set", action="append", default=[], metavar="KEY=VALUE",

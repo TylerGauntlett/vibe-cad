@@ -13,7 +13,7 @@ requirements.txt        pinned Python deps for .venv
 tools/
   new_model.py          scaffold models/<slug>/ from templates/
   check_mesh.py         watertight / volume / size / bed-fit check + preview PNG
-  slice_bambu.py        STL(s) -> sliced A1 .3mf via the installed Bambu Studio (incl. multi-colour AMS; 0.2 nozzle defaults)
+  slice_bambu.py        STL(s) -> sliced A1 .3mf via the installed Bambu Studio (incl. multi-colour AMS; 0.4 nozzle defaults)
   filaments.py          spools on hand (name, hex, Bambu preset) + named card palettes (vampire cards)
   palette_sheet.py      compare a vampire card's per-palette previews on one sheet
 templates/              model_template.py + model_README.md used by new_model.py
@@ -52,15 +52,14 @@ models/<slug>/
 - **GLB**: only needed for web viewers or the `render-glb` plugin. Not installed or used so far.
 
 ## Printer and materials (defaults; confirm per job if it matters)
-- **Bambu Lab A1**: 256 × 256 × 256 mm build volume, open frame (no enclosure), **0.2 mm nozzle** (since
-  2026-11-17; assume it going forward). Machine preset **Bambu Lab A1 0.2 nozzle** (max layer height 0.14 mm).
+- **Bambu Lab A1**: 256 × 256 × 256 mm build volume, open frame (no enclosure), **0.4 mm nozzle**
+  (back to 0.4 on 2026-11-21; the 0.2 nozzle phase is in git history). Machine preset **Bambu Lab A1 0.4 nozzle**.
 - Bed: **Textured PEI Plate** (the A1's stock plate), with PLA at 65 °C.
-- Filament: **Bambu PLA Basic @BBL A1 0.2 nozzle**. Process: **0.10mm Standard @BBL A1 0.2 nozzle**. These are
-  `slice_bambu.py`'s defaults; the 0.4 nozzle names are in comments next to them.
-- Design all heights as multiples of **0.1 mm** (layer height). The 0.2 preset's first layer is already slow
-  (16 mm/s walls), so don't add `initial_layer_speed` overrides that were meant to slow the 0.4 preset.
-- A 0.2 nozzle lays ~0.22 mm lines. Art rules written for 0.4 (beads ≥ 0.45 mm) still print, conservatively.
-  A face-down 0.4 mm colour inlay is now 4 layers, which roughly doubles its filament swaps.
+- Filament: **Bambu PLA Basic @BBL A1**. Process: **0.20mm Standard @BBL A1**. These are
+  `slice_bambu.py`'s defaults (also the `SLICER_PRESETS` in the vampire models).
+- Heights: 0.2 mm layers, so a 0.4 mm face-down colour inlay is 2 layers. Models built for 0.10 mm layers
+  were rebuilt for 0.4 on 2026-11-21; all their heights are already multiples of 0.2 mm.
+- Art rules: beads ≥ 0.45 mm wide, islands ≥ 1 mm² (see the legibility sections below).
 - Spools on hand, besides the Basic black/red/copper/white: six **Bambu PLA Matte** tan/brown colours: Ivory White,
   Desert Tan, Caramel, Terracotta, Dark Chocolate, Charcoal. The names, hex values and palettes are in `tools/filaments.py`.
 - Parts larger than about 250 mm on any axis must be split; a part can also be rotated
@@ -155,6 +154,7 @@ build with it refreshes the cache. Check that a fontless rebuild leaves the art 
   A single 8 mm Bahnschrift digit needs r 11.2 → a Ø36.8 wheel, so two need a 70.5 mm card (vampire-counter v4).
   Pushing a rim up counts up, so the left wheel's digits run the other way round.
   8 mm condensed "N/N" (12 mm wide) → r 21 → a Ø59 wheel, the most a 63 mm card can hold. Scale the slash to the digit height.
+  That leaves no room past the digits: for a bottom-edge thumb rim plus a bevelled window the cards use 7.5 mm digits (r 19.75).
 - Woodcut/engraved style (see models/vampire-arcana): black line art on white plus ONE accent reads far clearer than flat
   4-colour fills. On a 0.4 nozzle, strokes of 0.55 at 1.25 pitch, outlines 0.7. Print it **face-down as a 0.4 mm flat inlay**:
   every swap is in layers 1–2 (4 colours → 6 swaps), however much ink the art has.
@@ -168,6 +168,35 @@ build with it refreshes the cache. Check that a fontless rebuild leaves the art 
   back with symmetric pegs still assembles, but the wheel moves to the other side and the window lands off-detent.
 - Design-frame asserts can't see a wrong print transform. Re-assemble the parts **as written** (flip, seat on the
   printed pin) and check the result (models/vampire-counter `assembly_check()`).
+
+## Layered (shapely-extruded) parts (see models/token-dock)
+- Keep one STL per z band. `check_mesh.py` welds vertices, so stacked prisms in one file share edges four ways and
+  read as open edges.
+- A 45° face is a stack of one-layer prisms, each stepped 0.2 mm: the print is identical to a true bevel. Use it
+  for a lap joint between two face-down parts (both print without support) and to bevel a deep window.
+- A window deeper than ~2 mm hides the digits' bottoms when read at 45°. Bevel it out toward the face and keep
+  under 1 mm of straight wall above the digits.
+- Check a multi-part stack by rebuilding it from the printed bands and intersecting every pair of parts in every
+  shared z range (`assembly_check()`), plus a side-section plot.
+- Showing 1 of N values by sliding needs (2N−1) pitches of run; by a rack on a printable pinion (r ≥ ~4 mm) about
+  45 mm for 9 steps. At card size, only a wheel shows 7.5–8 mm digits.
+- A 9-value "N/N" ring needs r ≈ 2.63 × digit height (8 mm → 21, 7.5 mm → 19.75) with the window straight below the axle.
+- Thumb rim through an edge: the rim must clear the window by bevel + a 3-bead frame strip + the protrusion, so the
+  window sits ~8 mm in from that edge. With 9 notches, put the detent 160° from the exposed spot so a notch rests there.
+- The dial (wheel, detent, window, checks) lives in `models/vampire-counter/vampire_counter.py`. arcana, cathedral and
+  token-dock all import it, so after a change rebuild all four and compare STL hashes for the ones meant to stay put.
+
+## Print-in-place mechanisms (see models/duo-travel-stand)
+- Nest the moving bodies side by side in ONE slab (2.5D) so nothing prints over a gap. Gaps: 0.5 mm in plan,
+  0.4 mm between knuckles, 0.4 mm radial pin-to-bore.
+- Horizontal hinge: knuckle = circle + 45° foot (starts on the bed), pin with a flat underside on a layer line and
+  3 layers above the bore floor, bore roof a truncated teardrop, pin bridges ≤ ~10 mm between the knuckles it joins.
+- A hinge at mid-thickness folds only ±90°. A strut folded back into its panel swings through "straight down" on
+  its way out, so its length must be under the hinge height with the panel upright.
+- Anything near a hinge sweeps a circle about it: check the opening sweep with every body, not only the hinged one
+  (the folded leg's foot hit the base shoulder at 90°). Leave detent nubs out of the pass/fail: they interfere by design.
+- A flat-bottomed barrel has corners at 1.08 × R: give a cradle that seats it R + 0.5.
+- `a.distance_to(b)` gives the true minimum gap between bodies; use it next to `a & b`.
 
 ## Printing design rules of thumb
 - Design parts to print flat on their largest flat face, with no supports. Keep overhangs at or under 45°.
@@ -192,6 +221,9 @@ depth-sorting artifacts, not holes. Trust `open_edges`. View the PNG with the Re
 |---|---|---|
 | Wave jewelry-box insert (11.4×4.9×1", 5 waves + end ramps, 2 dovetailed halves) | `models/wave-insert/` | v4 sliced for A1 (1 plate) |
 | Vampire token card, 4-colour AMS (63×88 mm; flat-light + relief layouts) | `models/vampire-token/` | v2 sliced for A1 |
-| Vampire token with separate power + toughness wheels, 1–9 each (63×92×4.8 mm, 4 parts, 4-colour relief, tongue-and-groove) | `models/vampire-dial/` | v3 built for 0.2 nozzle, not sliced |
-| Vampire counter: flat-colour alt art of vampire-arcana (same frame, title, P/T wheels, back; 70.5×88 mm); hosts the shared frame + mechanism | `models/vampire-counter/` | v4 built for 0.2 nozzle, not sliced |
-| Vampire arcana: woodcut-tarot restyle of the counter (ink on white, gold moon, blood accents), face-down flat inlay; imports the counter's frame | `models/vampire-arcana/` | v3 built for 0.2 nozzle, not sliced |
+| Vampire token with separate power + toughness wheels, 1–9 each (63×92×4.8 mm, 4 parts, 4-colour relief, tongue-and-groove) | `models/vampire-dial/` | v3 rebuilt + sliced for 0.4 nozzle, not printed |
+| Vampire counter: flat-colour alt art of vampire-arcana (same frame, title, P/T wheels, back; 70.5×88 mm); hosts the shared frame + mechanism | `models/vampire-counter/` | v4 rebuilt + sliced for 0.4 nozzle, not printed |
+| Vampire arcana: woodcut-tarot restyle of the counter (ink on white, gold moon, blood accents), face-down flat inlay; imports the counter's frame | `models/vampire-arcana/` | v3 rebuilt + sliced for 0.4 nozzle, not printed |
+| Vampire cathedral: rule-based blend of the two (flat colour for cloth/glass/gold, woodcut for skin/hair/steel/stone): counter's red cloak, arcana's armour, merged sword, spiked crown, red-lined collar, engraved nave, gold rose window; imports arcana's knight parts + counter | `models/vampire-cathedral/` | v4 (two-wheel 70.5 mm card) sliced for A1, not printed |
+| Token dock: reusable 1/1–9/9 counter base (bottom-edge thumbwheel, bevelled window, 63×69.4×6 mm, same width as the card) + swappable flat 63×88 token cards (cleat toe, 2 magnet bosses, Ø6×2 magnets); imports arcana's scene + counter's dial (same wheel as the one-piece cards) | `models/token-dock/` | v1.2 sliced for A1 (base plate + arcana card plate), not printed |
+| iPhone Duo travel stand: one 8 mm print-in-place slab (122×110 mm) that unfolds into panel + prop leg + base; Ø56×7 puck behind a front lip, offset for the unfolded Duo; 60–73° | `models/duo-travel-stand/` | v1 sliced for A1, not printed |
