@@ -236,7 +236,7 @@ def cloak(cv, clip):
     halo(cv, clip, at(g), OUTLINE / 2 + HALO)
     va.outlined(cv, CLOAK, at(g), clip)
     for f in va.CLOAK_FOLDS:
-        cv.paint(INK, at(sym(taper(f, *CLOAK_FOLD_W), 0)), clip)
+        cv.paint(INK, at(sym(vc.cloak_widen(taper(f, *CLOAK_FOLD_W)), 0)), clip)
 
 
 def grip(cv, clip):
@@ -301,7 +301,7 @@ def front_regions(card):
 def finish(cv, card):
     """vc.finish, plus the sliver clean-up for the flat red and gold too: where the black cloak or
     collar crosses the nave or moulding at a shallow angle, the leftover wedge is narrower than a bead."""
-    cv.paint(PAPER, vc.mouth())
+    cv.paint(PAPER, vc.window().buffer(vc.WIN_MAT, join_style="round"))
     regions = {k: g.intersection(card).buffer(0) for k, g in cv.r.items()}
     for colour in (PAPER, BLOOD, GOLD):
         regions = vc.fill_slivers(regions, colour)
@@ -309,13 +309,13 @@ def finish(cv, card):
     return {k: vc.tidy(g) for k, g in regions.items()}
 
 
-def detail(regions, wh, path):
+def detail(regions, whs, path):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     fig_, axes = plt.subplots(1, 2, figsize=(15, 9))
     for ax, sim in zip(axes, (False, True)):
-        vc.draw_face(ax, regions, wh, 3, sim)
+        vc.draw_face(ax, regions, whs, (3, 3), sim)
         ax.set_xlim(ART[0] - 0.5, CX + 6); ax.set_ylim(ART[1] - 0.5, ART[3] + 0.5)
         ax.set_title("left half: stone, candle, window, crown, cloak, hilt" + (" (nozzle sim)" if sim else ""),
                      fontsize=10)
@@ -333,8 +333,8 @@ def main():
         {PAPER: card, INK: Polygon(), BLOOD: Polygon(), GOLD: Polygon()}
     vc.report(card, regions, back)
     vc.write_plate(m, regions, back, PARTS)
-    vc.preview(regions, back, m["wh"], OUT / "cathedral_preview.png")
-    detail(regions, m["wh"], OUT / "cathedral_detail.png")
+    vc.preview(regions, back, m["whs"], OUT / f"cathedral_preview{vc.TAG}.png")
+    detail(regions, m["whs"], OUT / f"cathedral_detail{vc.TAG}.png")
 
 
 if __name__ == "__main__":

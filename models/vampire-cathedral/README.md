@@ -16,7 +16,7 @@ Should both be completely re-imagined?" Asked; chosen: a **rule-based blend** (b
 ## Spec (as built)
 | Parameter | Value |
 |---|---|
-| Card, frame, title, dial, back, mechanism | **shared**: vampire-counter's frame (63 × 88 × 4.8 mm, 1.8 mm black edge, 1.2 mm rules, "VAMPIRE" in Georgia 6.0 mm caps), back, and the shared vampire-counter dial: 1/1 … 9/9 in 7.5 mm digits, a bevelled window standing on the card's bottom edge with a bat either side, and the wheel's thumb rim poking 2 mm out of the **bottom edge** (push it right to count up) |
+| Card, frame, title, dial, back, mechanism | **shared** (v4, as vampire-arcana): vampire-counter's frame (**70.5** × 88 × 4.8 mm, 1.8 mm black edge, 1.2 mm rules, "VAMPIRE" in Georgia 6.0 mm caps), back, and the shared vampire-counter v4 mechanism: **separate power and toughness wheels** (1–9 each, 8 mm digits, rims out of the left and right edges, no detent, tongue-and-groove joint), windows in ruled footer boxes with a bat-shaped "/" |
 | Blend rule | **flat colour for cloth, glass and gold** (vampire-counter's language); **woodcut line for skin, hair, steel and stone** (vampire-arcana's) |
 | Figure | the shared knight, assembled from parts: counter's **red cloak with black tapered folds** (on arcana's cloak silhouette, outlined); arcana's outlined, hatched **armour**; the shared face and hair in arcana's inking; a **merged sword**: arcana's blade with blood down the fuller and its gold guard and pommel, with the counter's **copper grip and two black bands**; plus: |
 | — crown | gold circlet over the hairline with 5 spikes (tips 13.0–15.4 mm above the face centre), outlined 0.55 black, a blood-red gem at the front |
@@ -26,10 +26,14 @@ Should both be completely re-imagined?" Asked; chosen: a **rule-based blend** (b
 | Face colour shares | ink 42.8 %, blood 5.0 %, gold 5.0 %, paper 47.2 % |
 | Line rules | arcana's: outlines 0.7, strokes 0.55, sub-bead slivers of white, red and gold merged into neighbours (18.6 mm² total), no island under 1 mm² |
 | Print | face-down flat inlay, 0.4 mm of colour; vampire-counter `SLICER_SET` (Arachne, slow first layer), Textured PEI 65 °C |
-| Plate | 1: front, back and wheel (one object, 21 parts) |
-| Sliced | **1 h 06 min, 28.6 g, 6 filament swaps (~2.3 g purge)**; per slot ink 1.95, blood 0.42, gold 0.90, paper 25.36 g, no slicer warnings (only the harmless enclosure advisory). v3 is not printed yet |
+| Plate | 1: front, back and both wheels (one object, 19 parts) |
+| Sliced | v4 (0.4 nozzle): **1 h 07 min, 31.4 g, 6 filament swaps (~2.3 g purge)**; per slot ink 2.03, blood 0.43, gold 0.91, paper 27.98 g; only the harmless enclosure advisory. Not printed |
 
 ## Decisions & interpretations
+### v4 (2026-11-22): the two-wheel card
+- Rebuilt on vampire-counter v4 / arcana v3 (70.5 mm card, separate power and toughness wheels, bat "/"), keeping the cathedral art. The nave arch is anchored to the card width, so it widened with the plate; the cloak and its folds use `vc.cloak_widen()`.
+- The knight split (`cloak_shape`, `knight_cloak/armour/head/sword`) had been lost from vampire-arcana in a merge; restored (arcana's STLs are byte-identical). `finish()` now clears the window mats as `vc.finish` does.
+
 ### v2: a rule-based blend
 - **One rule decides each element's style**, so the mix reads as designed rather than patched: cloth, glass and
   gold are flat colour; skin, hair, steel and stone are woodcut line. Each element is taken from whichever sibling
