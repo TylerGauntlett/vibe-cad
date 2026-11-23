@@ -13,7 +13,7 @@ requirements.txt        pinned Python deps for .venv
 tools/
   new_model.py          scaffold models/<slug>/ from templates/
   check_mesh.py         watertight / volume / size / bed-fit check + preview PNG
-  slice_bambu.py        STL(s) -> sliced A1 .3mf via the installed Bambu Studio (incl. multi-colour AMS; 0.4 nozzle defaults)
+  slice_bambu.py        STL(s) -> sliced A1 .3mf via the installed Bambu Studio (incl. multi-colour AMS; 0.4 nozzle defaults; --rotate 45 for a diagonal part)
   filaments.py          spools on hand (name, hex, Bambu preset) + named card palettes (vampire cards)
   palette_sheet.py      compare a vampire card's per-palette previews on one sheet
 templates/              model_template.py + model_README.md used by new_model.py
@@ -63,7 +63,8 @@ models/<slug>/
 - Spools on hand, besides the Basic black/red/copper/white: six **Bambu PLA Matte** tan/brown colours: Ivory White,
   Desert Tan, Caramel, Terracotta, Dark Chocolate, Charcoal. The names, hex values and palettes are in `tools/filaments.py`.
 - Parts larger than about 250 mm on any axis must be split; a part can also be rotated
-  diagonally. Put each oversize half on its own plate (the slicer arranges this automatically).
+  diagonally (`slice_bambu.py one.stl --rotate 45`; a 254 × 89 mm part then sits 6.8 mm clear of every edge).
+  Put each oversize half on its own plate (the slicer arranges this automatically).
 
 ## Environment (Windows 10, PowerShell)
 Cloud (Linux) sessions also happen. They have no Bambu Studio (so no slicing: leave the 3MF to be regenerated on
@@ -93,7 +94,14 @@ build with it refreshes the cache. Check that a fontless rebuild leaves the art 
 
 ## Bambu Studio CLI gotchas (handled in slice_bambu.py)
 - The exe is a GUI-subsystem binary: `--help` prints nothing. Check the exit code and `result.json` (`error_string: "Success."`).
-- System presets use `inherits` chains and must be flattened before `--load-settings`.
+- System presets use `inherits` chains and must be flattened before `--load-settings`. They also use `include`:
+  the A1's real start, end, filament-change, layer-change and time-lapse G-code are in five template presets the
+  machine preset includes. Until 2026-11-23 the script skipped them, so every 3MF sliced before then embeds the
+  generic `fdm_machine_common` G-code (two purge lines at x 10, no A1 calibration) and reads ~6–10 min short.
+  Opening the 3MF in Bambu Studio re-slices with the right G-code; re-slice a model to fix its embedded copy.
+- The CLI's arranger turns a long part square to the bed, even when the STL is already diagonal, and the CLI's own
+  `--rotate` slices the wrong geometry (half the layers). `slice_bambu.py --rotate` turns the mesh itself, centres it
+  and slices with `--arrange 0`, which keeps STL coordinates (the plate line then prints no object name).
 - Without `--curr-bed-type` the CLI picks **Cool Plate**, which gives a cold bed. Always pass the plate.
 - The CLI writes `plate_N.gcode` and `result.json` next to the 3MF. The script slices in a temp dir.
 - `printer_model_id` comes out blank, so tell the user to **open the 3MF in Bambu Studio and print from there** rather than sending it straight to the printer.
@@ -119,7 +127,8 @@ build with it refreshes the cache. Check that a fontless rebuild leaves the art 
 - Stacked colour reliefs: strokes under ~0.2 mm trigger "floating regions" (Bambu skips them in some
   layers). Drop them (the opening disk ≥ 0.25 mm) for multi-layer columns.
 - `slice_info.config` `<filament>` entries and the gcode's `total filament weight` list can drop a slot
-  and shift the rest. Count swaps from `M620 S<n>A` lines (the initial load isn't in the gcode).
+  and shift the rest. Count swaps from `M620 S<n>A` lines after `; MACHINE_START_GCODE_END` (the A1's start G-code
+  loads the first filament with one too).
 
 ## Image → multi-colour mesh (see models/vampire-token)
 - Quantize in Lab, then clean with a gentle majority blur + opening. Too much opening wipes out thin
@@ -253,7 +262,7 @@ depth-sorting artifacts, not holes. Trust `open_edges`. View the PNG with the Re
 ## Model index
 | Model | Folder | Status |
 |---|---|---|
-| Wave jewelry-box insert (11.4×4.9×1", 5 waves + end ramps, 2 dovetailed halves) | `models/wave-insert/` | v4 sliced for A1 (1 plate) |
+| Wave jewelry-box insert (10×3.5×0.75", 5 flattened-cosine waves + parabolic end ramps, one piece printed diagonally; `SPLIT` keeps the dovetailed-halves option) | `models/wave-insert/` | v5 sliced for A1 (1 plate) |
 | Vampire token card, 4-colour AMS (63×88 mm; flat-light + relief layouts) | `models/vampire-token/` | v2 sliced for A1 |
 | Vampire token with separate power + toughness wheels, 1–9 each (63×92×4.8 mm, 4 parts, 4-colour relief, tongue-and-groove) | `models/vampire-dial/` | v3 rebuilt + sliced for 0.4 nozzle, not printed |
 | Vampire counter: flat-colour alt art of vampire-arcana (same frame, title, P/T wheels, back; 70.5×88 mm); hosts the shared frame + mechanism | `models/vampire-counter/` | v4 rebuilt + sliced for 0.4 nozzle, not printed |

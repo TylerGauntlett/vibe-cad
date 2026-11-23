@@ -11,6 +11,8 @@ Usage:
         [--filament "Bambu PLA Basic @BBL A1"]
         [--bed "Textured PEI Plate"]
         [--set key=value ...]            override process settings (e.g. wall_generator=arachne)
+        [--rotate 45]                    one STL: turn it about Z, centre it on the bed and keep it there
+                                         (a 250+ mm part on the bed's diagonal)
 
 Multi-colour (AMS): with --assemble, all STLs become PARTS of ONE object, each on its own slot:
     python tools\\slice_bambu.py black.stl red.stl tan.stl cream.stl -o out\\x_A1.3mf
@@ -39,13 +41,19 @@ Why this script exists (lessons learned):
     the tower on in the GUI then fails with "conflicts of gcode paths (WipeTower <->
     Assembly)". For --assemble jobs we check that spot and, if needed, shift the
     parts clear of it and slice again.
+  * The CLI's arranger lays a long part square to the bed (a 254 mm part ends up 1 mm
+    from two edges), even when the STL itself is diagonal, and the CLI's own --rotate
+    slices the wrong geometry (half the layers). So --rotate here turns the mesh itself,
+    centres it on the bed and slices with --arrange 0, which keeps STL coordinates.
 """
 import argparse
 import colorsys
 import json
+import math
 import os
 import re
 import shutil
+import struct
 import subprocess
 import sys
 import tempfile
@@ -77,8 +85,15 @@ def flatten_preset(kind, name, dest):
         cur = index[parent]
     merged = {}
     for layer in reversed(chain):
+        # 'include' pulls in template presets: since Bambu Studio 2.x the A1's real start, end, filament-change,
+        # layer-change and time-lapse G-code live there. Without them the generic fdm_machine_common G-code is used.
+        for inc in layer.get("include") or []:
+            if inc not in index:
+                sys.exit(f"{kind} preset '{layer['name']}' includes '{inc}', which was not found")
+            merged.update({k: v for k, v in index[inc].items() if k not in ("name", "instantiation")})
         merged.update(layer)
     merged.pop("inherits", None)
+    merged.pop("include", None)
     merged.update(name=name, **{"from": "system", "instantiation": "true"})
     dest.write_text(json.dumps(merged, indent=2), encoding="utf-8")
     return dest
@@ -140,10 +155,11 @@ def summarize(path_3mf):
                 print("   per slot: " + ", ".join(f"{i + 1}={float(x):.2f} g" for i, x in enumerate(w)))
             else:
                 print("   per slot: (CLI header incomplete; see the model script's per-slot grams)")
-            # one "M620 S<n>A" per filament switch; the initial load is done by the firmware
-            changes = len(re.findall(r"^M620 S\d+A", gc, re.M))
+            # one "M620 S<n>A" per filament switch. The A1's start G-code loads the first filament with one
+            # too (and purges it), so count from the end of the start G-code on.
+            body = gc.split("; MACHINE_START_GCODE_END", 1)[-1]
+            changes = len(re.findall(r"^M620 S\d+A", body, re.M))
             # purge = extrusion inside the FLUSH_START..FLUSH_END blocks (relative E, mm of 1.75 filament)
-            body = gc.split("; EXECUTABLE_BLOCK_START", 1)[-1]
             purge_mm = sum(float(e) for blk in re.findall(r"; FLUSH_START(.*?); FLUSH_END", body, re.S)
                            for e in re.findall(r"^G1 [^;\n]*E([\d.]+)", blk, re.M))
             purge_g = purge_mm * 3.14159 * 0.875 ** 2 / 1000 * 1.24
@@ -204,6 +220,35 @@ def shift_item(path_3mf, dx, dy):
             zout.writestr(k, v)
 
 
+def rotated_copy(stl, deg, bed, dest):
+    """Write a copy of a binary STL turned about Z by deg degrees and centred on the bed (bed = x, y size).
+    Returns the smallest gap between its bounding box and the bed's edge."""
+    data = Path(stl).read_bytes()
+    n = struct.unpack_from("<I", data, 80)[0] if len(data) >= 84 else -1
+    if len(data) != 84 + 50 * n:
+        sys.exit(f"--rotate needs a binary STL: {stl}")
+    c, s = math.cos(math.radians(deg)), math.sin(math.radians(deg))
+    recs = [list(struct.unpack_from("<12fH", data, 84 + 50 * i)) for i in range(n)]
+    for r in recs:                                   # normal + 3 vertices, each x, y, z
+        for k in range(0, 12, 3):
+            r[k], r[k + 1] = c * r[k] - s * r[k + 1], s * r[k] + c * r[k + 1]
+    xs = [r[k] for r in recs for k in (3, 6, 9)]
+    ys = [r[k + 1] for r in recs for k in (3, 6, 9)]
+    size = (max(xs) - min(xs), max(ys) - min(ys))
+    gap = min(bed[0] - size[0], bed[1] - size[1]) / 2
+    if gap < 0:
+        sys.exit(f"turned {deg:g} deg the part is {size[0]:.1f} x {size[1]:.1f} mm: "
+                 f"too big for the {bed[0]:g} x {bed[1]:g} mm bed")
+    dx, dy = bed[0] / 2 - (min(xs) + max(xs)) / 2, bed[1] / 2 - (min(ys) + max(ys)) / 2
+    out = bytearray(data[:84])
+    for r in recs:
+        for k in (3, 6, 9):
+            r[k], r[k + 1] = r[k] + dx, r[k + 1] + dy
+        out += struct.pack("<12fH", *r)
+    dest.write_bytes(out)
+    return gap
+
+
 def run_cli(args, tmp):
     rc = subprocess.run([str(BAMBU_EXE), *args], cwd=tmp).returncode
     result = tmp / "result.json"
@@ -228,6 +273,9 @@ def main():
                     help='"Textured PEI Plate", "Cool Plate", "Engineering Plate", "High Temp Plate"')
     ap.add_argument("--set", action="append", default=[], metavar="KEY=VALUE",
                     help="override a process setting, e.g. wall_generator=arachne (repeatable)")
+    ap.add_argument("--rotate", type=float, default=0.0, metavar="DEG",
+                    help="one STL: turn it about Z, centre it on the bed and slice it there "
+                         "(45 lays a 250+ mm part on the diagonal)")
     ap.add_argument("--assemble", action="store_true",
                     help="load all STLs as parts of ONE object (multi-colour)")
     ap.add_argument("--extruders", help="comma list: filament slot per STL (default 1,2,3...)")
@@ -244,6 +292,8 @@ def main():
     extruders = [int(e) for e in a.extruders.split(",")] if a.extruders else list(range(1, len(stls) + 1))
     if a.assemble and len(extruders) != len(stls):
         sys.exit("--extruders needs one slot per STL")
+    if a.rotate and (a.assemble or len(stls) != 1):
+        sys.exit("--rotate takes exactly one STL and no --assemble")
     n_fil = max(max(extruders) if a.assemble else 1, len(colors), 1)
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -270,6 +320,17 @@ def main():
                   "--load-filaments", ";".join(fils), "--outputdir", str(tmp)]
 
         models = stls
+        placed = None
+        if a.rotate:
+            # the CLI's arranger would turn the part square to the bed again, so place the mesh ourselves
+            area = [tuple(float(v) for v in pt.split("x"))
+                    for pt in json.loads(m.read_text(encoding="utf-8"))["printable_area"]]
+            bed = (max(pt[0] for pt in area), max(pt[1] for pt in area))
+            (tmp / "rotated").mkdir()
+            turned = tmp / "rotated" / Path(stls[0]).name       # same file name = same object name
+            gap = rotated_copy(stls[0], a.rotate, bed, turned)
+            placed = f"turned {a.rotate:g} deg and centred, {gap:.1f} mm clear of the bed's edge"
+            models = [str(turned)]
         if a.assemble:
             # pass 1: let Bambu build the one-object/many-parts assembly (export only, no slicing)
             rc, msg = run_cli(["--assemble", "--arrange", "1", "--orient", "0", *common,
@@ -302,8 +363,8 @@ def main():
             models = [str(asm)]
 
         # A multi-colour assembly keeps the (centred) position pass 1 gave it, so that a shift off the
-        # prime tower below is exact; everything else is arranged by the CLI.
-        keep = a.assemble and n_fil > 1
+        # prime tower below is exact; so does a part placed by --rotate. Everything else is arranged by the CLI.
+        keep = (a.assemble and n_fil > 1) or bool(a.rotate)
         rc, msg = run_cli(["--arrange", "0" if keep else "1", "--orient", "0", *common, "--slice", "0",
                            "--export-3mf", out.name, *models], tmp)
         produced = tmp / out.name
@@ -338,6 +399,8 @@ def main():
     print(f"sliced  : {msg} -> {out}")
     if not summarize(out):
         sys.exit("A part is outside the printable area - split or rotate it.")
+    if placed:
+        print(f"placed  : {placed}")
     if tower:
         print(f"tower   : {tower}. It is sliced OFF here; switch it on in Bambu Studio if wanted.")
     print("note    : open the .3mf in Bambu Studio and print from there (the CLI leaves "
