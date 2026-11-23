@@ -110,6 +110,12 @@ build with it refreshes the cache. Check that a fontless rebuild leaves the art 
   `slice_bambu.py` prints them as `WARNING`. Check for that line, because the 3MF doesn't carry them.
 - The CLI writes `enable_prime_tower = 0` for these A1 multi-colour jobs even though the preset (and `--set`) says 1.
   Tell the user to switch it on in the GUI if wanted.
+- With the tower off the CLI centres the parts and ignores the tower's stored spot (35 mm wide at x 15, y 220, left
+  rear; y 200.5 if the CLI arranged the plate). A plate that reaches it fails in the GUI once the tower is switched on:
+  "Conflicts of gcode paths ... (WipeTower <-> Assembly)". `slice_bambu.py` now checks this for `--assemble` jobs: it
+  keeps the assembly where pass 1 put it (`--arrange 0`), and if the parts' box is within 6 mm of the tower zone it
+  shifts the build item's transform and slices again. Look for the `tower   :` line. A plate needs about 60 mm of free
+  bed width (or 45 mm of depth) for this to work, so don't fill the bed edge to edge.
 - Stacked colour reliefs: strokes under ~0.2 mm trigger "floating regions" (Bambu skips them in some
   layers). Drop them (the opening disk ≥ 0.25 mm) for multi-layer columns.
 - `slice_info.config` `<filament>` entries and the gcode's `total filament weight` list can drop a slot
@@ -186,6 +192,31 @@ build with it refreshes the cache. Check that a fontless rebuild leaves the art 
 - The dial (wheel, detent, window, checks) lives in `models/vampire-counter/vampire_counter.py`. arcana, cathedral and
   token-dock all import it, so after a change rebuild all four and compare STL hashes for the ones meant to stay put.
 
+## Large digits at card size (see models/emblem-counter)
+- A 0–9 digit wheel is about 4.2 × the digit height across (ring r = 1.35 × height for Bahnschrift Bold Condensed).
+  Two side by side cap at ~7 mm digits on a 63 mm card (8 mm needed the 70.5 mm card).
+- **Overlap the wheels on two levels** to reach 12 mm at 63 mm wide: power in front (left rim), toughness behind
+  (right rim) with a divider plate between. The rear window must miss the front wheel's cavity by a wall (1.6 mm), so
+  the front wheel sits ~11 mm higher and the digits read as a diagonal fraction that fills a 59 × 29 mm "text box".
+  With both windows in a row the same stack caps at 10 mm; at 13–14 mm the digits end up nearly one above the other.
+- The rear digit is ~4.4 mm below the face: bevel its well's bottom side 45° through plate and spacer (stacked
+  one-layer prisms), and dock the window boxes to the plate's border so the bevel has room.
+- One tongue can locate three layers: stand it on the back, pass it through slots in the divider (dash it, with
+  bridges, so the divider stays in one piece) and end it in the front's groove.
+- The mechanism lives in `models/emblem-counter/emblem_counter.py`; `models/sleeve-counter` re-sizes it with
+  `ec.configure(CARD_W=..., CARD_H=..., ...)`. After changing it, rebuild both and compare the emblem STL hashes.
+- A slide-in card pocket (models/sleeve-counter) can't be bridged (68 mm), so it is a back plate with a U rim, glued
+  under a tray whose base is the slot's roof.
+- A counter that sits over a real card must have its wheels in front of the card, so the block is 2R + 4.4 tall
+  (digit = 22 % of it) and whatever exceeds the covered part of the card hangs below it. Two-level wheels in a row also
+  need width: 72 mm for 12 mm digits, 78 for 13, 84 for 14. Say so before building: "larger font" means a larger block.
+  Put the windows ABOVE the wheel centres (`layout_up()`), or the digits end up below the card.
+- What the user liked for the plug-on counter: the digit row of five cells along the top with a woodcut scene below
+  (v1.1/v3). They rejected a text-box-only block with an emblem roundel (v2) after asking for "just the counters".
+  Show a preview before re-slicing a restyle.
+- Sliders cannot show a large digit (a strip needs 2N−1 pitches of run). A 7-segment mask over a sliding or turning
+  pattern needs 10 patches per segment in each track, which comes out no smaller than a digit wheel.
+
 ## Print-in-place mechanisms (see models/duo-travel-stand)
 - Nest the moving bodies side by side in ONE slab (2.5D) so nothing prints over a gap. Gaps: 0.5 mm in plan,
   0.4 mm between knuckles, 0.4 mm radial pin-to-bore.
@@ -226,4 +257,6 @@ depth-sorting artifacts, not holes. Trust `open_edges`. View the PNG with the Re
 | Vampire arcana: woodcut-tarot restyle of the counter (ink on white, gold moon, blood accents), face-down flat inlay; imports the counter's frame | `models/vampire-arcana/` | v3 rebuilt + sliced for 0.4 nozzle, not printed |
 | Vampire cathedral: rule-based blend of the two (flat colour for cloth/glass/gold, woodcut for skin/hair/steel/stone): counter's red cloak, arcana's armour, merged sword, spiked crown, red-lined collar, engraved nave, gold rose window; imports arcana's knight parts + counter | `models/vampire-cathedral/` | v4 (two-wheel 70.5 mm card) sliced for A1, not printed |
 | Token dock: reusable 1/1–9/9 counter base (bottom-edge thumbwheel, bevelled window, 63×69.4×6 mm, same width as the card) + swappable flat 63×88 token cards (cleat toe, 2 magnet bosses, Ø6×2 magnets); imports arcana's scene + counter's dial (same wheel as the one-piece cards) | `models/token-dock/` | v1.2 sliced for A1 (base plate + arcana card plate), not printed |
+| Emblem counter: generic P/T token with **12 mm digits**, 0–9 each, on two overlapping wheels (power in front, left rim; toughness behind, right rim), read as a diagonal "7 / 5" across the text-box area; 63×88×6.6 mm, 5 parts; five woodcut faces (sun, moon, tree, flame, mountain), each in 4 of the 6 Matte tan/brown spools; uses arcana's drawing helpers; hosts the two-level wheel mechanism (`configure()` re-sizes it), which sleeve-counter imports | `models/emblem-counter/` | v1 sliced for A1 (5 plates), not printed |
+| Sleeve counter: P/T counter that **plugs onto a real sleeved card** (the card slides into a slot in its back); an 84×62.6×9.2 mm block covering the card up to its art (40 mm), 22.6 mm below it; **14 mm digits** 0–9 in a row of five cells along the top (sword, power, slash, toughness, shield), a woodcut scene below (sun, moon, tree, flame, mountain; emblem-counter's palettes); 6 parts (back with slot rim and lead-in lip, tray, divider, front, 2 wheels); imports emblem-counter's mechanism | `models/sleeve-counter/` | v3 sliced for A1 (5 plates), not printed |
 | iPhone Duo travel stand: one 8 mm print-in-place slab (122×110 mm) that unfolds into panel + prop leg + base; Ø56×7 puck behind a front lip, offset for the unfolded Duo; 60–73° | `models/duo-travel-stand/` | v1 sliced for A1, not printed |
