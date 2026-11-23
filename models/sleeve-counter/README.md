@@ -169,3 +169,11 @@ writer). Rebuild this model after changing that file.
 - 2026-11-22: v3.1, after "create 5 additional options following similar design art work": five more faces on the
   same block and frame (**ship, storm, skull, castle, pines**), each in a new four-spool palette. The first
   five's STLs are byte-identical. Each new plate about 1 h 35 min, 50 g, 6-7 swaps; no slicer warnings. Not printed.
+- 2026-11-23: **info-panel prototypes (previews only, nothing built or sliced)**, after "create 5 different prototypes
+  for how the image space could be better used to show useful information ... key words, number of cards" and
+  "consider additional pieces (similar to a normal mtg dice) sized to fit perfectly on the image".
+  `info_prototypes.py` draws five options on the v3.1 face at true scale -> `out/prototypes/`:
+  A flip tiles (5 keyword icon tiles), B dice dock (two 20 mm count dice: copies, +1/+1), C word strips (two
+  keywords in 10 mm capitals), D count chips (numbered stacking chips beside a cropped scene), E a built-in third
+  wheel (copies x1-x6, O28, 8.5 mm numerals, 1.9 mm from the power cavity). A-D need a glued-on rail (1.2 x 1.6 mm)
+  round the panel, because the face prints face-down. Waiting for a pick before modelling.
