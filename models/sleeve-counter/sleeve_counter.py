@@ -4,8 +4,8 @@ Sleeve counter: a power/toughness counter that plugs onto a real, sleeved card. 
 slot in the back of the block. The block covers the card from its bottom edge up to the art and hangs
 below it; the card's name and art stay in view. On its face: power and toughness (0-9 each, on separate
 wheels) in a row of five cells along the top (sword, power, slash, toughness, shield), and a woodcut
-scene below, in the style and palettes of the emblem counter. Five faces: sun, moon, tree, flame,
-mountain.
+scene below, in the style and palettes of the emblem counter. Ten faces: sun, moon, tree, flame,
+mountain (the emblem counter's five), and ship, storm, skull, castle, pines (`MORE_DESIGNS`).
 
 Spec: see README.md in this folder.
 
@@ -32,7 +32,7 @@ Trial sizes: env SLEEVE_DIGIT_H, SLEEVE_BLOCK_W, SLEEVE_TILT override the parame
 Outputs (millimetres) go to models\\sleeve-counter\\out\\
     <design>/<object>_<n>_<slot>.stl   parts laid out as on the plate; load as ONE object (--assemble)
     <design>/slice_args.txt            the matching slice_bambu.py arguments
-    designs_preview.png                the five counters, each on a card
+    designs_preview.png                the ten counters, each on a card
     <design>_preview.png               one face at larger scale, with a nozzle simulation
     parts_preview.png                  back, tray, divider, front underside, and a section through the slot
 """
@@ -139,7 +139,7 @@ BODY_Z = BACK_T + SLOT_T        # where the tray starts
 THICK = BODY_Z + ec.THICK
 CX = BLOCK_W / 2
 AW, AH = ec.AW, ec.AH           # the art panel's half width and half height, in scene units
-outlined, ink, hatch = ec.outlined, ec.ink, ec.hatch
+outlined, ink, hatch, seg = ec.outlined, ec.ink, ec.hatch, ec.seg
 
 
 # ---- the five panels (scene units: origin at the art panel's centre, +-AW by +-15.2) ------------
@@ -277,8 +277,233 @@ def scene_mountain(cv, clip):
             outlined(cv, clip, ACC_B, disk((x, y), 2.9, 32), w=0.55)
 
 
-SCENES = {"sun": scene_sun, "moon": scene_moon, "tree": scene_tree, "flame": scene_flame, "mountain": scene_mountain}
-assert set(SCENES) == set(ec.DESIGNS)       # the palettes are the emblem counter's
+# ---- five more panels (same frame, same scene units) ---------------------------------------
+
+def bowed(pts, bows, n=16):
+    """A polygon whose sides bow: side i (pts[i] -> pts[i+1]) bulges bows[i] to its right, which is
+    outward when the points run anticlockwise."""
+    out = []
+    for p, q, b in zip(pts, pts[1:] + pts[:1], bows):
+        p, q = np.array(p, float), np.array(q, float)
+        d = q - p
+        nrm = np.array([d[1], -d[0]]) / np.hypot(*d)
+        t = np.linspace(0, 1, n, endpoint=False)[:, None]
+        out += [tuple(v) for v in p + t * d + 4 * b * t * (1 - t) * nrm]
+    return Polygon(out).buffer(0)
+
+
+def swell(y0, amp, pitch, phase=0.0):
+    """A band of sea: round troughs at y0 between cusped crests `amp` higher, a crest every `pitch`."""
+    x = np.arange(-AW - 6, AW + 6.01, 0.15)
+    y = y0 + amp * (1 - np.abs(np.sin(np.pi * (x - phase) / pitch)))
+    return Polygon(list(zip(x, y)) + [(x[-1], -AH - 6), (x[0], -AH - 6)]).buffer(0)
+
+
+def scene_ship(cv, clip):
+    """A ship under sail on a swell, a cloud and two gulls."""
+    ec.sky(cv, clip, -4.4, AH, inner=7.0)                  # the strokes stop short of the ship: no halos on it
+    ec.cloud(cv, clip, [(-28.6, 6.9, 2.6), (-24.4, 8.6, 3.4), (-19.6, 7.3, 2.6)], 5.6, fill=ACC_B)
+    for x, y, s in ((22.0, 9.0, 1.0), (28.0, 4.4, 0.8)):
+        gull = unary_union([taper([(x + d * 3.4 * s, y + 0.5 * s), (x + d * 1.7 * s, y + 1.5 * s), (x, y)], 0.55, 0.8, n=14)
+                            for d in (-1, 1)])
+        ink(cv, clip, gull.buffer(ec.HALO), PAPER)
+        ink(cv, clip, gull)
+    outlined(cv, clip, ACC_B, Polygon([(10.4, -1.0), (17.4, 0.6), (1.2, 11.6)]))                # jib
+    ink(cv, clip, seg((8.6, -2.2), (18.4, 0.9), 0.9))                                           # bowsprit
+    ink(cv, clip, box(0.05, -3.2, 0.95, 14.7))                                                  # mast
+    main = bowed([(-7.2, -1.9), (8.2, -1.9), (7.0, 6.1), (-6.0, 6.1)], [-1.0, 1.2, 0.0, -0.9])
+    top = bowed([(-4.4, 7.3), (6.0, 7.3), (5.0, 11.1), (-3.4, 11.1)], [-0.7, 0.9, 0.0, -0.6])
+    for sail, stripes, yard in ((main, (-3.3, 3.5), (-6.6, 7.6)), (top, (0.7,), (-4.0, 5.6))):
+        outlined(cv, clip, ACC_B, sail, w=0.8)
+        inner = ec.L(sail).buffer(-0.4).intersection(clip)
+        for x in stripes:
+            va.outlined(cv, ACC_A, ec.L(box(x - 1.2, -6, x + 1.2, 14)), inner, w=0.55)
+        ytop = sail.bounds[3]
+        ink(cv, clip, seg((yard[0], ytop + 0.1), (yard[1], ytop + 0.1), 0.9))
+    outlined(cv, clip, ACC_A, Polygon([(0.9, 14.7), (7.4, 14.1), (5.2, 13.4), (7.4, 12.7), (0.9, 12.3)]), w=0.55)
+    hull = Polygon([(-13.2, -0.2), (-8.4, -0.2), (-7.8, -3.0), (8.0, -3.0), (9.6, -1.6), (15.2, -0.8), (11.6, -6.4),
+                    (8.0, -9.6), (-8.8, -9.6), (-11.8, -6.4)]).buffer(-0.3).buffer(0.3)
+    outlined(cv, clip, ACC_A, hull, w=0.8)
+    ink(cv, clip, taper([(-12.2, -3.0), (-7.0, -5.0), (8.0, -5.0), (13.0, -3.2)], 0.6, 0.6).intersection(hull))
+    for y0, ph, fill in ((-9.2, 0.0, ACC_B), (-11.6, 4.5, PAPER), (-14.0, 0.0, ACC_A)):
+        outlined(cv, clip, fill, swell(y0, 2.3, 9.0, ph))
+
+
+def bolt(c, s=1.0, flip=1):
+    """A lightning bolt hanging from c (the middle of its top edge), 16.5 s tall, its tip down and to
+    the left (flip -1: to the right)."""
+    pts = [(-2.0, 0.0), (2.0, 0.0), (-1.4, -5.4), (1.6, -5.4), (-6.5, -16.5), (-3.8, -8.4), (-6.8, -8.4)]
+    return Polygon([(c[0] + flip * s * x, c[1] + s * y) for x, y in pts]).buffer(0)
+
+
+def scene_storm(cv, clip):
+    """A thunderhead over dark hills: three bolts, driving rain, a bare tree."""
+    bumps = [(-5.6, 6.2, 2.8), (-1.4, 7.8, 3.6), (3.6, 8.0, 3.8), (8.2, 6.4, 2.9)]
+    head = unary_union([disk((x, y), r, 32) for x, y, r in bumps]).intersection(box(-60, 4.2, 60, 60))
+    ceil_bumps = [(x, 10.4 - 1.5 * (i % 2), 4.4 - 0.5 * (i % 2)) for i, x in enumerate(np.arange(-38.4, 39, 6.4))]
+    ceiling = unary_union([disk((x, y), r, 32) for x, y, r in ceil_bumps] + [box(-60, 10.0, 60, 60)])
+    # rain: slanted dashes, clear of the clouds
+    d = np.array([np.cos(np.radians(68)), np.sin(np.radians(68))])
+    nrm = np.array([-d[1], d[0]])
+    dashes = []
+    for i, off in enumerate(np.arange(-44.0, 44.0, 3.4)):
+        for t in np.arange(-30.0 + 2.3 * (i % 3), 30.0, 6.6):
+            p = off * nrm + t * d
+            if abs(p[0]) <= AW + 1 and -13.0 <= p[1] <= 6.0:
+                dashes.append(seg(tuple(p), tuple(p + 3.6 * d)))
+    rain = unary_union(dashes).difference(unary_union([ceiling, head]).buffer(1.0))
+    ink(cv, clip, unary_union([p for p in vt.polys_of(rain) if p.area >= 1.4]))
+    # hills, back to front, and a bare tree on the far one
+    far = spline([(-2, -22), (5, -11.8), (15, -8.0), (27, -6.2), (40, -8.6), (40, -22)])
+    outlined(cv, clip, PAPER, far, halo=ec.HALO)
+    ink(cv, clip, hatch(va.inside(far).intersection(box(10, -22, 40, -8.6)), -12, min_len=2.4))
+    tree = unary_union([taper([(26.4, -7.0), (26.0, -3.4), (25.0, 0.2)], 1.3, 0.7),
+                        taper([(26.1, -3.8), (23.4, -1.6), (20.8, -1.4)], 0.8, 0.55),
+                        taper([(25.6, -1.6), (23.6, 1.6), (21.0, 2.6)], 0.75, 0.55),
+                        taper([(26.2, -4.6), (28.6, -2.6), (29.0, -0.6)], 0.75, 0.55)])
+    ink(cv, clip, tree.buffer(ec.HALO), PAPER)
+    ink(cv, clip, tree)
+    mid = spline([(-40, -22), (-40, -7.8), (-28, -6.0), (-16, -8.0), (-5, -12.0), (2, -22)])
+    outlined(cv, clip, PAPER, mid, halo=ec.HALO)
+    ink(cv, clip, hatch(va.inside(mid).intersection(box(-40, -22, -9, -8.4)), 12, min_len=2.4))
+    near = spline([(-40, -22), (-40, -12.4), (-19, -11.0), (0, -12.6), (19, -11.2), (40, -12.8), (40, -22)])
+    outlined(cv, clip, ACC_B, near, halo=ec.HALO)
+    ink(cv, clip, taper([(-28, -13.9), (-13, -13.1), (2, -14.3), (17, -13.3), (29, -14.3)], 0.7, 0.7), PAPER)
+    for c, s, flip in (((2.6, 5.2), 1.0, 1), ((-18.0, 7.0), 0.62, -1), ((17.0, 7.0), 0.56, 1)):
+        outlined(cv, clip, ACC_A, bolt(c, s, flip), halo=0.9)
+    outlined(cv, clip, ACC_B, ceiling)                     # the clouds go over the bolts' tops
+    for x, y, r in ceil_bumps:
+        ink(cv, clip, ec.arc((x, y + 0.2), r * 0.55, 200, 330, w=0.65), PAPER)
+    ec.cloud(cv, clip, bumps, 4.2, fill=ACC_A, halo=0.0)
+
+
+def scene_skull(cv, clip):
+    """A skull among six candles, rays above it."""
+    ec.sky(cv, clip, -8.4, AH, inner=4.5)
+    gy = -10.4                                             # the ground line
+    c = np.array([0.0, 0.9])
+    for i in range(11):
+        a = np.radians(90 + (i - 5) * 13.0)
+        u = np.array([np.cos(a), np.sin(a)])
+        ink(cv, clip, taper([tuple(c + 10.4 * u), tuple(c + (13.6 if i % 2 == 0 else 12.4) * u)], 0.95, 0.55, n=12))
+    for x, h, lean in ((-27.0, 7.5, -0.5), (-20.0, 12.0, 0.5), (-13.2, 5.5, -0.4), (13.2, 6.5, 0.4), (20.0, 10.5, -0.5),
+                       (27.0, 8.0, 0.5)):
+        top = gy + h
+        candle = unary_union([box(x - 1.7, gy - 1, x + 1.7, top - 0.3), rrect((x - 2.3, top - 1.1, x + 2.3, top + 0.2), 0.5)])
+        outlined(cv, clip, ACC_A, candle, halo=0.9)
+        ink(cv, clip, unary_union([seg((x - 1.7, top - 1.1), (x + 1.7, top - 1.1), 0.6),
+                                   seg((x - 0.6, top - 1.1), (x - 0.6, top - 3.2), 0.6)]))
+        outlined(cv, clip, ACC_B, ec.flame_tongue(x, top + 2.3, 3.0, 5.4, lean), w=0.6, halo=0.8)
+        ink(cv, clip, seg((x, top + 0.2), (x, top + 1.6), 0.6))
+    ground = box(-40, -22, 40, gy)
+    outlined(cv, clip, PAPER, ground)
+    ink(cv, clip, hatch(va.inside(ground), 0, pitch=1.5, phase=0.3, min_len=3.0))
+    cranium = affinity.translate(affinity.scale(disk((0, 0), 1.0, 64), 7.4, 6.8, origin=(0, 0)), 0, 1.0)
+    skull = unary_union([cranium, rrect((-4.4, -10.2, 4.4, -2.0), 1.4)]).buffer(1.2).buffer(-1.2)
+    outlined(cv, clip, ACC_A, skull, w=0.8, halo=0.9)
+    for s in (-1, 1):
+        eye = affinity.rotate(affinity.scale(disk((s * 3.2, 0.2), 1.0, 48), 2.3, 2.5, origin=(s * 3.2, 0.2)), s * 12)
+        ink(cv, clip, eye)
+        ink(cv, clip, disk((s * 3.2, 0.0), 0.95, 32), ACC_B)
+    ink(cv, clip, Polygon([(0, -1.6), (-1.35, -4.3), (0, -3.7), (1.35, -4.3)]))
+    ink(cv, clip, unary_union([seg((-3.6, -6.5), (3.6, -6.5))] + [seg((x, -8.2), (x, -4.9)) for x in (-2.4, -0.8, 0.8, 2.4)]))
+    ink(cv, clip, taper([(2.4, 7.2), (3.2, 5.7), (2.3, 4.8), (3.3, 3.5)], 0.6, 0.55, n=24))
+
+
+def crenels(x0, x1, y, mer=1.7, gap=1.5, h=1.3):
+    """Merlons along a wall top from x0 to x1, one at each end."""
+    n = max(2, int(round((x1 - x0 + gap) / (mer + gap))))
+    pitch = (x1 - x0 - mer) / (n - 1)
+    return unary_union([box(x0 + i * pitch, y - 0.2, x0 + i * pitch + mer, y + h) for i in range(n)])
+
+
+def scene_castle(cv, clip):
+    """A castle on a hill: keep, curtain wall, two roofed towers, a road down from the gate, poplars."""
+    ec.sky(cv, clip, -7.6, AH, inner=7.5)
+    ec.cloud(cv, clip, [(-29.0, 8.6, 2.6), (-24.9, 10.3, 3.4), (-20.1, 9.0, 2.6)], 7.3, fill=ACC_B)
+    ec.cloud(cv, clip, [(20.4, 5.6, 2.4), (24.6, 7.2, 3.2), (29.1, 6.0, 2.5)], 4.4, fill=ACC_B)
+    for x, h in ((-29.0, 6.4), (-23.4, 8.4), (23.4, 7.6), (29.0, 5.8)):          # poplars
+        outlined(cv, clip, ACC_A, bowed([(x, -12.5), (x, -12.5 + h + 4.0)], [1.9, 1.9]), halo=0.8)
+    for s in (-1, 1):
+        x = s * 13.0
+        outlined(cv, clip, ACC_B, box(x - 2.7, -9, x + 2.7, 4.6))
+        ink(cv, clip, box(x - 0.42, 0.0, x + 0.42, 2.7))
+        outlined(cv, clip, ACC_A, Polygon([(x - 3.8, 4.6), (x + 3.8, 4.6), (x, 11.4)]))
+        ink(cv, clip, disk((x, 11.6), 0.75, 24))
+    outlined(cv, clip, ACC_B, unary_union([box(-10.6, -9, 10.6, 0.0), crenels(-10.6, 10.6, 0.0)]))
+    ink(cv, clip, unary_union([seg((x, y), (x + 2.0, y)) for x, y in ((-9.2, -2.2), (-7.4, -4.2), (6.2, -2.0), (7.6, -4.4))]))
+    ink(cv, clip, seg((0, 8.4), (0, 14.0), 0.75))
+    outlined(cv, clip, ACC_A, Polygon([(0.4, 14.3), (5.8, 13.0), (0.4, 11.7)]), w=0.55)
+    outlined(cv, clip, ACC_B, unary_union([box(-4.6, -9, 4.6, 6.6), box(-5.3, 6.0, 5.3, 7.4), crenels(-5.3, 5.3, 7.4, mer=2.0)]))
+    ink(cv, clip, unary_union([box(-1.9, -9, 1.9, -2.6), disk((0, -2.6), 1.9, 32),
+                               box(-0.75, 2.0, 0.75, 4.0), disk((0, 4.0), 0.75, 24)]))
+    hill = spline([(-40, -22), (-40, -12.6), (-26, -11.4), (-15, -7.6), (0, -5.0), (15, -7.6), (26, -11.4), (40, -12.6),
+                   (40, -22)])
+    outlined(cv, clip, PAPER, hill)
+    ink(cv, clip, hatch(va.inside(hill).intersection(box(-40, -22, 40, -9.4)), 0, pitch=1.5, phase=0.2, min_len=3.0))
+    left = spline([(-1.7, -4.0), (-3.4, -8.4), (-1.6, -11.6), (-6.4, -17.0)], closed=False, n=40)
+    right = spline([(1.7, -4.0), (0.8, -8.4), (4.6, -11.6), (3.4, -17.0)], closed=False, n=40)
+    road = Polygon(list(left.coords) + list(right.coords)[::-1])
+    va.outlined(cv, ACC_B, ec.L(road), ec.L(va.inside(hill)).intersection(clip), halo=0.6)
+
+
+def pine(x, y0, h, w, n=4):
+    """A fir standing on (x, y0): n drooping tiers above a short trunk. Returns (crown, trunk, snow strokes)."""
+    t = 0.12 * h
+    s = (h - t) / (n + 0.7)
+    tiers, snow = [], []
+    for i in range(n):
+        yb, wi = y0 + t + i * s, w / 2 * (1 - 0.7 * i / (n - 1))
+        tiers.append(Polygon([(x - wi, yb), (x, yb + 1.7 * s), (x + wi, yb), (x, yb + 0.3 * s)]))
+        u1 = min(0.56, 1 - 2.4 / wi)
+        if u1 >= 0.42:                                     # a stroke along the left slope, where the tier is wide enough
+            snow.append(taper([(x - wi * (1 - u) + 1.25, yb + 1.7 * s * u) for u in (0.2, (0.2 + u1) / 2, u1)], 0.75, 0.75, n=8))
+    crown = unary_union(tiers).buffer(-0.2).buffer(0.2)
+    return crown, box(x - 0.9, y0 - 4, x + 0.9, y0 + t + 0.6 * s), unary_union(snow) if snow else Polygon()
+
+
+def scene_pines(cv, clip):
+    """Firs in snow before a low moon, four stars."""
+    ec.sky(cv, clip, -4.6, AH, inner=7.0)
+    outlined(cv, clip, ACC_A, disk((5.5, 2.4), 9.6, 96), w=0.8, halo=0.9)
+    for x, y, r in ((-20.0, 12.2, 2.5), (-4.6, 13.0, 2.4), (19.0, 13.0, 2.5), (32.0, 11.6, 2.4)):
+        outlined(cv, clip, ACC_A, ec.star((x, y), r, r * 0.36), w=0.5, halo=0.8)
+
+    def stand(trees):
+        for x, y0, h, w, n in trees:
+            crown, trunk, snow = pine(x, y0, h, w, n)
+            outlined(cv, clip, ACC_A, trunk, w=0.55, halo=0.8)
+            outlined(cv, clip, ACC_B, crown, halo=0.8)
+            ink(cv, clip, snow.intersection(crown.buffer(-0.9)), PAPER)
+
+    stand([(-2.6, -6.6, 11.6, 7.8, 3), (15.6, -6.6, 14.0, 8.8, 3), (33.4, -6.6, 10.6, 7.4, 3)])
+    far = spline([(-40, -22), (-40, -6.6), (-20, -7.4), (0, -6.6), (18, -7.2), (40, -6.4), (40, -22)])
+    outlined(cv, clip, PAPER, far)                         # the horizon: behind the front firs' crowns
+    stand([(-25.6, -11.4, 20.0, 12.0, 4), (-13.4, -11.8, 24.6, 13.2, 4), (25.4, -11.6, 22.4, 12.6, 4)])
+    near = spline([(-40, -22), (-40, -12.4), (-22, -13.2), (-6, -12.2), (10, -13.2), (26, -12.4), (40, -13.0), (40, -22)])
+    outlined(cv, clip, PAPER, near)
+    for pts in ([(-3.5, -9.6), (4, -9.2), (11.5, -9.8)], [(1, -11.0), (8, -10.7), (14, -11.1)]):
+        ink(cv, clip, taper(pts, 0.6, 0.6))
+
+
+# The second five: name -> (spools for ink / accent A / accent B / paper, scene, description), as ec.DESIGNS.
+MORE_DESIGNS = {
+    "ship": (("Dark Chocolate", "Caramel", "Ivory White", "Desert Tan"), scene_ship,
+             "ship under sail: chocolate lines on tan, ivory sails and foam, caramel hull"),
+    "storm": (("Charcoal", "Ivory White", "Dark Chocolate", "Desert Tan"), scene_storm,
+              "thunderstorm: charcoal on tan, ivory lightning, chocolate cloud and hill"),
+    "skull": (("Charcoal", "Ivory White", "Terracotta", "Caramel"), scene_skull,
+              "skull and candles: charcoal on caramel, ivory bone and wax, terracotta flames"),
+    "castle": (("Dark Chocolate", "Terracotta", "Ivory White", "Desert Tan"), scene_castle,
+               "castle on a hill: chocolate lines on tan, ivory walls, terracotta roofs"),
+    "pines": (("Charcoal", "Caramel", "Dark Chocolate", "Ivory White"), scene_pines,
+              "firs in snow: charcoal on ivory, chocolate firs, caramel moon"),
+}
+ec.DESIGNS.update(MORE_DESIGNS)             # ec.report, ec.hexes and ec.write_plate look the spools up there
+
+SCENES = {"sun": scene_sun, "moon": scene_moon, "tree": scene_tree, "flame": scene_flame, "mountain": scene_mountain,
+          **{name: d[1] for name, d in MORE_DESIGNS.items()}}
+assert set(SCENES) == set(ec.DESIGNS)       # the first five palettes are the emblem counter's
 
 
 # ---- the face and the back ---------------------------------------------------------------
@@ -481,9 +706,14 @@ def designs_preview(m, faces, path):
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     hgt = 6.2 * (FOOT + 95.5) / (BLOCK_W + 2 * ec.PROTRUDE + 4)
-    fig_, axes = plt.subplots(1, len(faces), figsize=(6.2 * len(faces), hgt + 0.5), squeeze=False)
-    shown = [(7, 5), (0, 1), (3, 3), (9, 9), (2, 4)]
-    for ax, (design, regions), pt in zip(axes[0], faces.items(), shown):
+    cols = min(len(faces), 5)
+    rows = -(-len(faces) // cols)
+    fig_, axes = plt.subplots(rows, cols, figsize=(6.2 * cols, (hgt + 0.5) * rows), squeeze=False)
+    shown = [(7, 5), (0, 1), (3, 3), (9, 9), (2, 4), (4, 2), (6, 6), (1, 1), (5, 8), (8, 3)]
+    for ax in axes.flat[len(faces):]:
+        ax.axis("off")
+    for ax, (design, regions) in zip(axes.flat, faces.items()):
+        pt = shown[list(SCENES).index(design)]
         draw_base(ax, m, regions, ec.hexes(design), pt)
         ax.set_title(f"{design}  {pt[0]}/{pt[1]}\n" + " / ".join(ec.DESIGNS[design][0]), fontsize=9)
     plt.tight_layout()
