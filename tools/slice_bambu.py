@@ -34,6 +34,11 @@ Why this script exists (lessons learned):
     the per-part "extruder" keys in its model_settings.config, then slice that.
   * The CLI's default flush matrix is a flat 280 mm^3 for every colour pair. The
     GUI recomputes it from the colours; --flush auto does a similar estimate here.
+  * The CLI slices A1 multi-colour jobs with the prime tower off and centres the
+    parts, so a large plate can sit on the tower's stored spot (left rear). Switching
+    the tower on in the GUI then fails with "conflicts of gcode paths (WipeTower <->
+    Assembly)". For --assemble jobs we check that spot and, if needed, shift the
+    parts clear of it and slice again.
 """
 import argparse
 import colorsys
@@ -147,6 +152,58 @@ def summarize(path_3mf):
     return ok
 
 
+TOWER_MARGIN = 6.0      # mm kept clear round the tower and its brim (its rib walls reach past the corners)
+BED_MARGIN = 2.0        # mm the parts keep from the bed's edge when they are shifted
+
+
+def tower_clearance(path_3mf):
+    """How the parts sit against the prime tower's stored spot.
+    Returns (gap, shift, text): gap in mm between the parts' bounding box and the tower zone (tower + brim;
+    negative = overlap), the (dx, dy) that would move the parts TOWER_MARGIN clear (None if nothing fits),
+    and the zone as text."""
+    z = zipfile.ZipFile(path_3mf)
+    cfg = json.loads(z.read("Metadata/project_settings.config"))
+    x0, y0, x1, y1 = json.loads(z.read("Metadata/plate_1.json"))["bbox_all"]
+    area = [tuple(float(v) for v in pt.split("x")) for pt in cfg["printable_area"]]
+    bed_x, bed_y = max(a[0] for a in area), max(a[1] for a in area)
+    tx, ty = float(cfg["wipe_tower_x"][0]), float(cfg["wipe_tower_y"][0])
+    brim = float(cfg.get("prime_tower_brim_width", 3))
+    zx1, zy0 = tx + float(cfg.get("prime_tower_width", 35)) + brim, ty - brim     # the zone runs to the rear edge
+    gap = max(x0 - zx1, zy0 - y1)
+    text = f"tower at x {tx:g}-{zx1 - brim:g}, y {ty:g}+ (brim {brim:g})"
+    if x0 < tx - brim:
+        return gap, None, text + "; the parts reach past its left side"
+    options = []
+    dy = min(0.0, zy0 - TOWER_MARGIN - y1)             # toward the front
+    if y0 + dy >= BED_MARGIN:
+        options.append((0.0, dy))
+    dx = max(0.0, zx1 + TOWER_MARGIN - x0)             # toward the right
+    if x1 + dx <= bed_x - BED_MARGIN:
+        options.append((dx, 0.0))
+    shift = min(options, key=lambda o: abs(o[0]) + abs(o[1])) if options else None
+    return gap, shift, text
+
+
+def shift_item(path_3mf, dx, dy):
+    """Move the (single) build item of a 3MF by (dx, dy)."""
+    zin = zipfile.ZipFile(path_3mf)
+    items = {n: zin.read(n) for n in zin.namelist()}
+    zin.close()
+    model = items["3D/3dmodel.model"].decode()
+
+    def move(mo):
+        t = mo.group(2).split()
+        t[9], t[10] = f"{float(t[9]) + dx:.5f}", f"{float(t[10]) + dy:.5f}"
+        return mo.group(1) + " ".join(t) + mo.group(3)
+    model, n = re.subn(r'(<item [^>]*transform=")([^"]+)(")', move, model)
+    if n != 1:
+        sys.exit(f"expected one build item to move, found {n}")
+    items["3D/3dmodel.model"] = model.encode()
+    with zipfile.ZipFile(path_3mf, "w", zipfile.ZIP_DEFLATED) as zout:
+        for k, v in items.items():
+            zout.writestr(k, v)
+
+
 def run_cli(args, tmp):
     rc = subprocess.run([str(BAMBU_EXE), *args], cwd=tmp).returncode
     result = tmp / "result.json"
@@ -244,16 +301,45 @@ def main():
             (tmp / "result.json").unlink(missing_ok=True)
             models = [str(asm)]
 
-        rc, msg = run_cli(["--arrange", "1", "--orient", "0", *common, "--slice", "0",
+        # A multi-colour assembly keeps the (centred) position pass 1 gave it, so that a shift off the
+        # prime tower below is exact; everything else is arranged by the CLI.
+        keep = a.assemble and n_fil > 1
+        rc, msg = run_cli(["--arrange", "0" if keep else "1", "--orient", "0", *common, "--slice", "0",
                            "--export-3mf", out.name, *models], tmp)
         produced = tmp / out.name
         if rc != 0 or not produced.exists():
             sys.exit(f"Slicing failed: exit {rc}, {msg}")
+        tower = None
+        if n_fil > 1:
+            gap, shift, where = tower_clearance(produced)
+            if gap >= TOWER_MARGIN:
+                tower = f"clear by {gap:.1f} mm ({where})"
+            elif a.assemble and shift:
+                # move the one object out of the tower's zone and slice again, keeping that position
+                produced.unlink()
+                (tmp / "result.json").unlink(missing_ok=True)
+                shift_item(models[0], *shift)
+                rc, msg = run_cli(["--arrange", "0", "--orient", "0", *common, "--slice", "0",
+                                   "--export-3mf", out.name, *models], tmp)
+                if rc != 0 or not produced.exists():
+                    sys.exit(f"Slicing failed after moving the parts off the prime tower: exit {rc}, {msg}")
+                gap2, _, where = tower_clearance(produced)
+                if gap2 < TOWER_MARGIN - 0.1:
+                    bb = json.loads(zipfile.ZipFile(produced).read("Metadata/plate_1.json"))["bbox_all"]
+                    sys.exit(f"the parts did not move clear of the prime tower (gap {gap2:.1f} mm; asked for "
+                             f"{shift}, parts now at {[round(v, 1) for v in bb]}; {where})")
+                tower = (f"parts moved {shift[0]:+.1f}, {shift[1]:+.1f} mm off it; now clear by {gap2:.1f} mm "
+                         f"({where})")
+            else:
+                tower = (f"WARNING: no room: the parts are {gap:.1f} mm from the tower zone ({where}). "
+                         "Leave the prime tower off, or re-arrange the plate")
         shutil.move(str(produced), out)
 
     print(f"sliced  : {msg} -> {out}")
     if not summarize(out):
         sys.exit("A part is outside the printable area - split or rotate it.")
+    if tower:
+        print(f"tower   : {tower}. It is sliced OFF here; switch it on in Bambu Studio if wanted.")
     print("note    : open the .3mf in Bambu Studio and print from there (the CLI leaves "
           "printer_model_id blank). 'bed_temperature_too_high_than_filament' is an "
           "enclosure advisory and can be ignored on the open-frame A1.")
